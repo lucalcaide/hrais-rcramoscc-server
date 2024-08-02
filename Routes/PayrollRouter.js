@@ -1,6 +1,6 @@
 import express from "express";
 import con from "../utils/db.js";
-import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
@@ -25,7 +25,7 @@ const router = express.Router();
       return res.json({ Status: false, Error: 'Email is already used' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
     const sql = 'INSERT INTO payroll (email, fname, lname, password) VALUES (?, ?, ?, ?)';
     con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {

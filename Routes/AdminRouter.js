@@ -1,6 +1,6 @@
 import express from 'express';
 import con from '../utils/db.js';
-import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
@@ -45,7 +45,7 @@ router.post("/login", (req, res) => {
           return;
         }
 
-        bcrypt.compare(password, result[0].password, (err, isMatch) => {
+        bcryptjs.compare(password, result[0].password, (err, isMatch) => {
           if (err || !isMatch) {
             res.json({
               loginStatus: false,
@@ -152,7 +152,7 @@ router.post('/createadmin', async (req, res) => {
         return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO admin (email, fname, lname, password) VALUES (?, ?, ?, ?)';
       con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
@@ -184,7 +184,7 @@ router.post('/createrecruitment', async (req, res) => {
         return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO recruitment (email, fname, lname, password) VALUES (?, ?, ?, ?)';
       con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
@@ -216,7 +216,7 @@ router.post('/createpayroll', async (req, res) => {
         return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO payroll (email, fname, lname, password) VALUES (?, ?, ?, ?)';
       con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
@@ -837,7 +837,7 @@ router.post("/add_employee", upload.fields([
           return res.json({ Status: false, Error: "Email is already in use." });
         } else {
           // If both emp_no and email are unique, proceed with insertion
-          bcrypt.hash(req.body.password, 10, (hashErr, hash) => {
+          bcryptjs.hash(req.body.password, 10, (hashErr, hash) => {
             if (hashErr) return res.json({ Status: false, Error: "Error Hashing Password" });
 
             const imageFile = req.files.image ? req.files.image[0].filename : null;
@@ -1052,7 +1052,7 @@ router.post('/create_new_password/:id', (req, res) => {
   }
 
   // Hash the new password
-  bcrypt.hash(newPassword, 10, (hashErr, hash) => {
+  bcryptjs.hash(newPassword, 10, (hashErr, hash) => {
     if (hashErr) return res.json({ Status: false, Error: "Error hashing password" });
 
     // Update the password in the database

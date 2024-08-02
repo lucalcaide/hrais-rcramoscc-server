@@ -1,6 +1,6 @@
 import express from "express";
 import con from "../utils/db.js";
-import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -19,7 +19,7 @@ router.post("/employeelogin", (req, res) => {
               return res.json({ loginStatus: false, Error: "Employee is currently inactive" });
           }
 
-          bcrypt.compare(req.body.password, employee.password, (err, response) => {
+          bcryptjs.compare(req.body.password, employee.password, (err, response) => {
               if (err) return res.json({ loginStatus: false, Error: "Wrong Password" });
 
               if (response) {
@@ -122,12 +122,12 @@ router.post('/change-password/:id', (req, res) => {
         const hashedPassword = result[0].password;
 
         // Compare current password with the stored password
-        bcrypt.compare(currentPassword, hashedPassword, (err, isMatch) => {
+        bcryptjs.compare(currentPassword, hashedPassword, (err, isMatch) => {
             if (err) return res.status(500).json({ success: false });
             if (!isMatch) return res.status(400).json({ success: false });
 
             // Hash the new password
-            bcrypt.hash(newPassword, 10, (err, newHashedPassword) => {
+            bcryptjs.hash(newPassword, 10, (err, newHashedPassword) => {
                 if (err) return res.status(500).json({ success: false });
 
                 // Update the password in the database

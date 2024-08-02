@@ -1,6 +1,6 @@
 import express from "express";
 import con from "../utils/db.js";
-import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
@@ -51,7 +51,7 @@ router.post("/add_employee", upload.single('image'), (req, res) => {
           return res.json({ Status: false, Error: "Email is already in use." });
         } else {
           // If both emp_no and email are unique, proceed with insertion
-          bcrypt.hash(req.body.password, 10, (hashErr, hash) => {
+          bcryptjs.hash(req.body.password, 10, (hashErr, hash) => {
             if (hashErr) return res.json({ Status: false, Error: "Error Hashing Password" });
 
             const values = [
