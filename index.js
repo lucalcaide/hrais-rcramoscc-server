@@ -48,4 +48,9 @@ const verifyUser = (req, res, next) => {
 };
 
 app.get('/verify', verifyUser, (req, res) => {
-    return res.json({
+    return res.json({ Status: true, role: req.role, id: req.id });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
