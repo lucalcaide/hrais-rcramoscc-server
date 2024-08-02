@@ -2,10 +2,10 @@ import mysql from 'mysql2';
 
 // Create a connection to the database
 const con = mysql.createConnection({
-  host: '153.92.15.18',
-  user: 'u362138419_rcramoscc',
+  host: '192.168.1.9',
+  user: 'u362138419_hrisrcramos',
   password: 'RCramosCC1',
-  database: 'u362138419_hrisrcramoscc'
+  database: 'u362138419_rcramoscc1'
 });
 
 // Connect to the database
