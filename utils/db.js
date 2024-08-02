@@ -15,3 +15,5 @@ connection.connect((err) => {
   }
   console.log('Connected as id ' + connection.threadId);
 });
+
+export default con;
