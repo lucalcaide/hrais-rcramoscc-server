@@ -1,19 +1,21 @@
 import mysql from 'mysql2';
 
-const connection = mysql.createConnection({
-  host: '153.92.15.18', // Or use 
+// Create a connection to the database
+const con = mysql.createConnection({
+  host: 'srv1364.hstgr.io',
   user: 'u362138419_rcramoscc',
   password: 'RCramosCC1',
-  database: 'u362138419_hrisrcramoscc',
-  port: 3306 // Default MySQL port
+  database: 'u362138419_hrisrcramoscc'
 });
 
-connection.connect((err) => {
+// Connect to the database
+con.connect(err => {
   if (err) {
-    console.error('Error connecting: ' + err.stack);
+    console.error('Error connecting to the database:', err);
     return;
   }
-  console.log('Connected as id ' + connection.threadId);
+  console.log('Connected to the database');
 });
 
+// Export the connection object
 export default con;
