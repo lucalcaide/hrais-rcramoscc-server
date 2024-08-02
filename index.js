@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["https://orange-pigeon-781710.hostingersite.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
