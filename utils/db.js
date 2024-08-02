@@ -2,7 +2,7 @@ import mysql from 'mysql2';
 
 // Create a connection to the database
 const con = mysql.createConnection({
-  host: 'srv1364.hstgr.io',
+  host: '153.92.15.18',
   user: 'u362138419_rcramoscc',
   password: 'RCramosCC1',
   database: 'u362138419_hrisrcramoscc'
