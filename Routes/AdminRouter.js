@@ -10,7 +10,6 @@ import { promises as fsPromises } from 'fs'; // Use fs/promises for promise-base
 import { parse, format, differenceInMinutes  } from 'date-fns'; // For date conversion
 import { fileURLToPath } from 'url';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
@@ -141,24 +140,29 @@ router.post('/createadmin', async (req, res) => {
     return res.json({ Status: false, Error: 'All fields are required' });
   }
 
-  con.query('SELECT * FROM admin WHERE email = ?', [email], async (err, result) => {
-    if (err) {
-      return res.json({ Status: false, Error: 'Query error' });
-    }
-    if (result.length > 0) {
-      return res.json({ Status: false, Error: 'Email is already used' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = 'INSERT INTO admin (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-    con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+  // Check if the email is already used in any role
+  con.query(
+    'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
+    [email],
+    async (err, result) => {
       if (err) {
-        return res.json({ Status: false, Error: 'Insert error' });
+        return res.json({ Status: false, Error: 'Query error' });
       }
-      return res.json({ Status: true, Message: 'Admin created successfully' });
-    });
-  });
+      if (result.length > 0) {
+        return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const sql = 'INSERT INTO admin (email, fname, lname, password) VALUES (?, ?, ?, ?)';
+      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+        if (err) {
+          return res.json({ Status: false, Error: 'Insert error' });
+        }
+        return res.json({ Status: true, Message: 'Admin created successfully' });
+      });
+    }
+  );
 });
 
 // Create recruitment route
@@ -168,23 +172,29 @@ router.post('/createrecruitment', async (req, res) => {
     return res.json({ Status: false, Error: 'All fields are required' });
   }
 
-  con.query('SELECT * FROM recruitment WHERE email = ?', [email], async (err, result) => {
-    if (err) {
-      return res.json({ Status: false, Error: 'Query error' });
-    }
-    if (result.length > 0) {
-      return res.json({ Status: false, Error: 'Email is already used' });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = 'INSERT INTO recruitment (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-    con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+  // Check if the email is already used in any role
+  con.query(
+    'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
+    [email],
+    async (err, result) => {
       if (err) {
-        return res.json({ Status: false, Error: 'Insert error' });
+        return res.json({ Status: false, Error: 'Query error' });
       }
-      return res.json({ Status: true, Message: 'Recruitment created successfully' });
-    });
-  });
+      if (result.length > 0) {
+        return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const sql = 'INSERT INTO recruitment (email, fname, lname, password) VALUES (?, ?, ?, ?)';
+      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+        if (err) {
+          return res.json({ Status: false, Error: 'Insert error' });
+        }
+        return res.json({ Status: true, Message: 'Recruitment created successfully' });
+      });
+    }
+  );
 });
 
 // Create payroll route
@@ -194,23 +204,29 @@ router.post('/createpayroll', async (req, res) => {
     return res.json({ Status: false, Error: 'All fields are required' });
   }
 
-  con.query('SELECT * FROM payroll WHERE email = ?', [email], async (err, result) => {
-    if (err) {
-      return res.json({ Status: false, Error: 'Query error' });
-    }
-    if (result.length > 0) {
-      return res.json({ Status: false, Error: 'Email is already used' });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = 'INSERT INTO payroll (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-    con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+  // Check if the email is already used in any role
+  con.query(
+    'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
+    [email],
+    async (err, result) => {
       if (err) {
-        return res.json({ Status: false, Error: 'Insert error' });
+        return res.json({ Status: false, Error: 'Query error' });
       }
-      return res.json({ Status: true, Message: 'Payroll created successfully' });
-    });
-  });
+      if (result.length > 0) {
+        return res.json({ Status: false, Error: 'This email is already associated with another role. Please use a different email.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const sql = 'INSERT INTO payroll (email, fname, lname, password) VALUES (?, ?, ?, ?)';
+      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+        if (err) {
+          return res.json({ Status: false, Error: 'Insert error' });
+        }
+        return res.json({ Status: true, Message: 'Payroll created successfully' });
+      });
+    }
+  );
 });
 
 //get department
@@ -425,10 +441,18 @@ const upload = multer({
   }
 });
 
-// Endpoint to handle attendance file upload
 router.post('/upload-attendance', upload.single('attendance_file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).send({ message: 'No file uploaded' });
+  }
+
+  // Check if the uploaded file is a CSV
+  const fileExtension = path.extname(req.file.originalname).toLowerCase();
+  if (fileExtension !== '.csv') {
+    fsPromises.unlink(req.file.path)
+      .then(() => console.log('Non-CSV file deleted successfully'))
+      .catch(err => console.error('Error deleting file:', err));
+    return res.status(400).send({ message: 'Uploaded file is not a CSV file' });
   }
 
   const filePath = path.join(req.file.destination, req.file.filename);
@@ -622,7 +646,6 @@ router.post('/upload-attendance', upload.single('attendance_file'), async (req, 
       }
     });
 });
-
 
 // Endpoint to update an attendance record
 router.post('/attendance/update/:id', (req, res) => {
