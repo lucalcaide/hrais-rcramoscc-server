@@ -1,22 +1,17 @@
-import mysql2 from 'mysql2';
-import dotenv from 'dotenv';
+import mysql from 'mysql2';
 
-dotenv.config();
-
-const con = mysql2.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+const connection = mysql.createConnection({
+  host: '153.92.15.18', // Or use 
+  user: 'u362138419_rcramoscc',
+  password: 'RCramosCC1',
+  database: 'u362138419_hrisrcramoscc',
+  port: 3306 // Default MySQL port
 });
 
-con.connect(function(err) {
-    if (err) {
-        console.error("Connection error: ", err.message);
-        console.error("Error details: ", err);
-    } else {
-        console.log("Connected to the MySQL database.");
-    }
+connection.connect((err) => {
+  if (err) {
+    console.error('Error connecting: ' + err.stack);
+    return;
+  }
+  console.log('Connected as id ' + connection.threadId);
 });
-
-export default con;
