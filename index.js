@@ -67,7 +67,11 @@ console.log('Static files directory:', distPath);
 app.get('*', (req, res) => {
     const filePath = path.join(distPath, 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
-    console.log('Files in dist:', fs.readdirSync(distPath));
+    try {
+        console.log('Files in dist:', fs.readdirSync(distPath));
+    } catch (err) {
+        console.error('Error reading dist directory:', err);
+    }
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('Error sending file:', err);
