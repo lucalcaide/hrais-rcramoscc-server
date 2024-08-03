@@ -14,7 +14,7 @@ import fs from 'fs';
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.join(__dirname, '..', 'HumanResourceIS', 'dist'); // Updated path
+const distPath = path.join(__dirname, 'dist'); // Adjusted path for the backend directory
 
 console.log('Files in parent directory:', fs.readdirSync(path.join(__dirname, '..')));
 console.log('Static files directory:', distPath);
