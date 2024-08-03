@@ -32,6 +32,25 @@ if (!JWT_SECRET_KEY) {
     console.log('JWT_SECRET_KEY is loaded:', JWT_SECRET_KEY);
 }
 
+// Example function to generate a token
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, role: user.role },
+    JWT_SECRET_KEY,
+    { expiresIn: '1h' }
+  );
+};
+
+// Example user object
+const user = {
+  id: 1,
+  role: 'admin'
+};
+
+// Generate a token
+const token = generateToken(user);
+console.log('Generated Token:', token);
+
 app.use(cors({
   origin: 'https://hrais-rcramoscc-client.onrender.com',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -52,19 +71,23 @@ app.use('/payroll', payrollRouter);
 
 // Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(400).send('Bad Request: Missing Authorization Header');
+  }
 
+  const token = authHeader.split(' ')[1];
   if (!token) {
-      return res.status(401).send('Access Denied: No Token Provided!');
+    return res.status(400).send('Bad Request: Missing Token');
   }
 
   try {
-      const verified = jwt.verify(token, JWT_SECRET_KEY);
-      req.user = verified;
-      next();
+    const verified = jwt.verify(token, JWT_SECRET_KEY);
+    req.user = verified;
+    next();
   } catch (error) {
-      console.error('Token verification error:', error);
-      res.status(400).send('Invalid Token');
+    console.error('Token verification error:', error);
+    res.status(401).send('Unauthorized: Invalid Token');
   }
 };
 
@@ -94,5 +117,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
