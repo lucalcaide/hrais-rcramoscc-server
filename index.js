@@ -61,7 +61,7 @@ app.get('/verify', verifyUser, (req, res) => {
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
-    const filePath = path.join('.', 'dist', 'index.html');
+    const filePath = path.join(__dirname, 'dist', 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
     res.sendFile(filePath, (err) => {
         if (err) {
