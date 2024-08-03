@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Create a connection pool
 const pool = mysql.createPool({
   host: process.env.MYSQL_ADDON_HOST,
   user: process.env.MYSQL_ADDON_USER,
@@ -11,13 +12,5 @@ const pool = mysql.createPool({
   port: process.env.MYSQL_ADDON_PORT,
 });
 
-pool.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-    return;
-  }
-  console.log('Connected to the database');
-});
-
-// Export the connection object
+// Export the pool object for use in other modules
 export default pool;
