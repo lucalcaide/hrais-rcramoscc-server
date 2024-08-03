@@ -49,9 +49,9 @@ app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-// Serve the React app for all other routes
+// All other GET requests not handled before will return the React app
 app.get('*', (req, res) => {
-    res.sendFile(path.resolve('Public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
