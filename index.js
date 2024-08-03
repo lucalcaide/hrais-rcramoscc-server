@@ -23,12 +23,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your_secret_key';
 
-// CORS configuration
 app.use(cors({
-    origin: "https://hrais-rcramoscc-client.onrender.com",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-}));  
+  origin: 'https://hrais-rcramoscc-client.onrender.com',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true // Allow sending cookies and authorization headers
+}));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -42,46 +41,46 @@ app.use('/employee', employeeRouter);
 app.use('/recruitment', recruitmentRouter);
 app.use('/payroll', payrollRouter);
 
+// Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
-    const token = req.cookies.token;
-    if (token) {
-        jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ Status: false, Error: "Invalid token" });
-            }
-            req.id = decoded.id;
-            req.role = decoded.role;
-            next();
-        });
-    } else {
-        return res.status(401).json({ Status: false, Error: "Not Authenticated" });
+    const token = req.headers['authorization']?.split(' ')[1]; // Extract token from the Authorization header
+    if (!token) {
+      return res.status(401).send('Access Denied: No Token Provided!');
     }
-};
+  
+    try {
+      const verified = jwt.verify(token, JWT_SECRET_KEY); // Use your secret key
+      req.user = verified;
+      next();
+    } catch (error) {
+      res.status(400).send('Invalid Token');
+    }
+  };
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
-    return res.json({ Status: true, role: req.role, id: req.id });
-});
+    return res.json({ Status: true, role: req.user.role, id: req.user.id });
+  });
 
 // Serve the index.html for all other routes
 app.get('*', (req, res) => {
-    const filePath = path.join(distPath, 'index.html');
-    console.log(`Attempting to serve file at: ${filePath}`);
-    fs.readdir(distPath, (err, files) => {
-        if (err) {
-            console.error('Error reading dist directory:', err);
-        } else {
-            console.log('Files in dist directory:', files);
-        }
-    });
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error('Error serving index.html:', err);
-            res.status(500).send('Internal Server Error');
-        }
-    });
+  const filePath = path.join(distPath, 'index.html');
+  console.log(`Attempting to serve file at: ${filePath}`);
+  fs.readdir(distPath, (err, files) => {
+    if (err) {
+      console.error('Error reading dist directory:', err);
+    } else {
+      console.log('Files in dist directory:', files);
+    }
+  });
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Internal Server Error');
+    }
+  });
 });
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-});
+  });
