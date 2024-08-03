@@ -7,11 +7,17 @@ import { employeeRouter } from './Routes/EmployeeRouter.js';
 import { recruitmentRouter } from './Routes/RecruitmentRouter.js';
 import { payrollRouter } from './Routes/PayrollRouter.js';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import con from './utils/db.js'; // Ensure this import is correct
+
+// Get directory name for ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your_secret_key';
 
 app.use(cors({
     origin: ["bxpkkfabofwg7onomdrq-mysql.services.clever-cloud.com"],
