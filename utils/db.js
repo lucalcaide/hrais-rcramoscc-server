@@ -1,9 +1,9 @@
-import mysql from 'mysql2';
+import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const con = mysql.createConnection({
+const pool = mysql.createPool({
   host: process.env.MYSQL_ADDON_HOST,
   user: process.env.MYSQL_ADDON_USER,
   password: process.env.MYSQL_ADDON_PASSWORD,
@@ -11,7 +11,7 @@ const con = mysql.createConnection({
   port: process.env.MYSQL_ADDON_PORT,
 });
 
-con.connect((err) => {
+pool.connect((err) => {
   if (err) {
     console.error('Error connecting to the database:', err);
     return;
@@ -20,4 +20,4 @@ con.connect((err) => {
 });
 
 // Export the connection object
-export default con;
+export default pool;

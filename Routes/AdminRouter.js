@@ -1,5 +1,5 @@
 import express from 'express';
-import con from '../utils/db.js';
+import pool from '../utils/db.js';
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
@@ -16,6 +16,7 @@ const router = express.Router();
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+
   const queries = [
     { sql: "SELECT * FROM admin WHERE email = ?", role: 'admin' },
     { sql: "SELECT * FROM recruitment WHERE email = ?", role: 'recruitment' },
@@ -23,34 +24,41 @@ router.post("/login", async (req, res) => {
     { sql: "SELECT * FROM employee WHERE email = ?", role: 'employee' }
   ];
 
-  try {
-    for (const query of queries) {
-      const [result] = await con.query(query.sql, [email]);
+  let found = false;
+
+  for (const query of queries) {
+    if (found) break;
+
+    try {
+      const [result] = await pool.query(query.sql, [email]);
+
       if (result.length > 0) {
         if (query.role === 'employee' && result[0].employee_status === 'Inactive') {
           return res.json({ loginStatus: false, Error: "Account Deactivated!" });
         }
 
         const isMatch = await bcryptjs.compare(password, result[0].password);
-        if (isMatch) {
-          const token = jwt.sign(
-            { role: query.role, email, id: result[0].id },
-            process.env.JWT_SECRET_KEY, // Use the environment variable
-            { expiresIn: "1d" }
-          );
-          res.cookie("token", token, { httpOnly: true });
-          return res.json({ loginStatus: true, role: query.role, id: result[0].id });
-        } else {
+        if (!isMatch) {
           return res.json({ loginStatus: false, Error: "Invalid Email or Password" });
         }
-      }
-    }
 
-    res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.json({ loginStatus: false, Error: "An error occurred" });
+        const { email, fname, lname, id } = result[0];
+        const token = jwt.sign(
+          { role: query.role, email, id },
+          "jwt_secret_key",
+          { expiresIn: "1d" }
+        );
+
+        res.cookie("token", token, { httpOnly: true });
+        return res.json({ loginStatus: true, role: query.role, id });
+      }
+    } catch (err) {
+      console.error(`Query error for ${query.role}:`, err);
+      return res.json({ loginStatus: false, Error: "Query error" });
+    }
   }
+
+  return res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
 });
 
 
@@ -76,12 +84,12 @@ router.put('/update_employee_status/:id', (req, res) => {
   const { id } = req.params;
 
   // Check if the employee exists
-  con.query(sqlCheck, [id], (err, result) => {
+  pool.query(sqlCheck, [id], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length === 0) return res.json({ Status: false, Error: "Employee not found." });
 
     // If exists, update the employee status to 'Inactive'
-    con.query(sqlUpdate, [id], (updateErr, updateResult) => {
+    pool.query(sqlUpdate, [id], (updateErr, updateResult) => {
       if (updateErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true, Message: "Employee status updated to 'Inactive'." });
     });
@@ -96,7 +104,7 @@ router.post('/createadmin', async (req, res) => {
   }
 
   // Check if the email is already used in any role
-  con.query(
+  pool.query(
     'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
     [email],
     async (err, result) => {
@@ -110,7 +118,7 @@ router.post('/createadmin', async (req, res) => {
       const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO admin (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+      pool.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
         if (err) {
           return res.json({ Status: false, Error: 'Insert error' });
         }
@@ -128,7 +136,7 @@ router.post('/createrecruitment', async (req, res) => {
   }
 
   // Check if the email is already used in any role
-  con.query(
+  pool.query(
     'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
     [email],
     async (err, result) => {
@@ -142,7 +150,7 @@ router.post('/createrecruitment', async (req, res) => {
       const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO recruitment (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+      pool.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
         if (err) {
           return res.json({ Status: false, Error: 'Insert error' });
         }
@@ -160,7 +168,7 @@ router.post('/createpayroll', async (req, res) => {
   }
 
   // Check if the email is already used in any role
-  con.query(
+  pool.query(
     'SELECT * FROM (SELECT email FROM admin UNION ALL SELECT email FROM employee UNION ALL SELECT email FROM recruitment UNION ALL SELECT email FROM payroll) AS all_roles WHERE email = ?',
     [email],
     async (err, result) => {
@@ -174,7 +182,7 @@ router.post('/createpayroll', async (req, res) => {
       const hashedPassword = await bcryptjs.hash(password, 10);
 
       const sql = 'INSERT INTO payroll (email, fname, lname, password) VALUES (?, ?, ?, ?)';
-      con.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
+      pool.query(sql, [email, fname, lname, hashedPassword], (err, result) => {
         if (err) {
           return res.json({ Status: false, Error: 'Insert error' });
         }
@@ -187,7 +195,7 @@ router.post('/createpayroll', async (req, res) => {
 //get department
 router.get("/department", (req, res) => {
   const sql = "SELECT * FROM department";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -197,11 +205,11 @@ router.post("/add_dept", (req, res) => {
   const sqlCheck = "SELECT * FROM department WHERE name = ?";
   const sqlInsert = "INSERT INTO department (`name`) VALUES (?)";
   
-  con.query(sqlCheck, [req.body.department], (err, result) => {
+  pool.query(sqlCheck, [req.body.department], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Department name already exists." });
 
-    con.query(sqlInsert, [req.body.department], (insertErr, insertResult) => {
+    pool.query(sqlInsert, [req.body.department], (insertErr, insertResult) => {
       if (insertErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -216,12 +224,12 @@ router.put("/update_department/:id", (req, res) => {
   const { name } = req.body;
 
   // Check if the department name already exists for another department
-  con.query(sqlCheck, [name, id], (err, result) => {
+  pool.query(sqlCheck, [name, id], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Department name already exists." });
 
     // If not, update the department name
-    con.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
+    pool.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
       if (updateErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -232,7 +240,7 @@ router.put("/update_department/:id", (req, res) => {
 router.delete("/delete_department/:id", (req, res) => { 
   const departmentId = req.params.id;
   const sql = "DELETE FROM department WHERE id = ?";
-  con.query(sql, [departmentId], (err, result) => { 
+  pool.query(sql, [departmentId], (err, result) => { 
     if (err) return res.json({ Status: false, Error: "Query Error" }); 
     if (result.affectedRows === 0) {
       return res.json({ Status: false, Error: "Department not found" });
@@ -244,7 +252,7 @@ router.delete("/delete_department/:id", (req, res) => {
 //get project
 router.get("/project", (req, res) => {
   const sql = "SELECT * FROM project";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -254,11 +262,11 @@ router.post("/add_project", (req, res) => {
   const sqlCheck = "SELECT * FROM project WHERE name = ?";
   const sqlInsert = "INSERT INTO project (`name`) VALUES (?)";
   
-  con.query(sqlCheck, [req.body.project], (err, result) => {
+  pool.query(sqlCheck, [req.body.project], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Project/Unit already exists." });
 
-    con.query(sqlInsert, [req.body.project], (insertErr, insertResult) => {
+    pool.query(sqlInsert, [req.body.project], (insertErr, insertResult) => {
       if (insertErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -273,12 +281,12 @@ router.put("/update_project/:id", (req, res) => {
   const { name } = req.body;
 
   // Check if the project name already exists for another project
-  con.query(sqlCheck, [name, id], (err, result) => {
+  pool.query(sqlCheck, [name, id], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Project name already exists." });
 
     // If not, update the project name
-    con.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
+    pool.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
       if (updateErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -288,7 +296,7 @@ router.put("/update_project/:id", (req, res) => {
 router.delete("/delete_project/:id", (req, res) => { 
   const projectId = req.params.id;
   const sql = "DELETE FROM project WHERE id = ?";
-  con.query(sql, [projectId], (err, result) => { 
+  pool.query(sql, [projectId], (err, result) => { 
     if (err) return res.json({ Status: false, Error: "Query Error" }); 
     if (result.affectedRows === 0) {
       return res.json({ Status: false, Error: "Project not found" });
@@ -300,7 +308,7 @@ router.delete("/delete_project/:id", (req, res) => {
 //get position
 router.get("/position", (req, res) => {
   const sql = "SELECT * FROM position";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -310,11 +318,11 @@ router.post("/add_position", (req, res) => {
   const sqlCheck = "SELECT * FROM position WHERE name = ?";
   const sqlInsert = "INSERT INTO `position` (`name`) VALUES (?)";
   
-  con.query(sqlCheck, [req.body.position], (err, result) => {
+  pool.query(sqlCheck, [req.body.position], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Position already exists." });
 
-    con.query(sqlInsert, [req.body.position], (insertErr, insertResult) => {
+    pool.query(sqlInsert, [req.body.position], (insertErr, insertResult) => {
       if (insertErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -329,12 +337,12 @@ router.put("/update_position/:id", (req, res) => {
   const { name } = req.body;
 
   // Check if the position name already exists for another position
-  con.query(sqlCheck, [name, id], (err, result) => {
+  pool.query(sqlCheck, [name, id], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (result.length > 0) return res.json({ Status: false, Error: "Position name already exists." });
 
     // If not, update the position name
-    con.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
+    pool.query(sqlUpdate, [name, id], (updateErr, updateResult) => {
       if (updateErr) return res.json({ Status: false, Error: "Query Error" });
       return res.json({ Status: true });
     });
@@ -344,7 +352,7 @@ router.put("/update_position/:id", (req, res) => {
 router.delete("/delete_position/:id", (req, res) => { 
   const positionId = req.params.id;
   const sql = "DELETE FROM position WHERE id = ?";
-  con.query(sql, [positionId], (err, result) => { 
+  pool.query(sql, [positionId], (err, result) => { 
     if (err) return res.json({ Status: false, Error: "Query Error" }); 
     if (result.affectedRows === 0) {
       return res.json({ Status: false, Error: "Position not found" });
@@ -445,7 +453,7 @@ router.post('/upload-attendance', upload.single('attendance_file'), async (req, 
         const checkSql = 'SELECT emp_no, date FROM attendance WHERE (emp_no, date) IN ?';
         const values = [recordsToCheck.map(record => [record.emp_no, record.date])];
 
-        con.query(checkSql, [values], (err, rows) => {
+        pool.query(checkSql, [values], (err, rows) => {
           if (err) {
             console.error('Error checking records:', err);
             return res.status(500).send({ message: 'Error checking records for duplicates' });
@@ -464,7 +472,7 @@ router.post('/upload-attendance', upload.single('attendance_file'), async (req, 
           // Step 2: Fetch start_time, out_time, and rate_per_hour for each employee
           const empNosArray = Array.from(empNos);
           const empQuery = 'SELECT emp_no, start_time, out_time, rate_per_hour FROM employee WHERE emp_no IN ?';
-          con.query(empQuery, [[empNosArray]], (err, employees) => {
+          pool.query(empQuery, [[empNosArray]], (err, employees) => {
             if (err) {
               console.error('Error fetching employee details:', err);
               return res.status(500).send({ message: 'Error fetching employee details' });
@@ -581,7 +589,7 @@ router.post('/upload-attendance', upload.single('attendance_file'), async (req, 
               row.total_amount_pay
             ]);
 
-            con.query(insertSql, [insertValues], (err) => {
+            pool.query(insertSql, [insertValues], (err) => {
               if (err) {
                 console.error('Error inserting attendance records:', err);
                 return res.status(500).send({ message: 'Failed to insert records' });
@@ -608,7 +616,7 @@ router.post('/attendance/update/:id', (req, res) => {
   const { extra, total_amount_pay, hours_worked, status, late } = req.body;
 
   // Fetch the existing attendance record
-  con.query('SELECT * FROM attendance WHERE id = ?', [id], (err, result) => {
+  pool.query('SELECT * FROM attendance WHERE id = ?', [id], (err, result) => {
     if (err) {
       console.error(err);
       return res.json({ Status: false, Error: 'Query Error' });
@@ -648,14 +656,14 @@ router.post('/attendance/update/:id', (req, res) => {
       WHERE id = ?
     `;
 
-    con.query(sqlUpdate, [attendance.extra, attendance.hours_worked, total_amount_pay, earnings, overtime, attendance.status, attendance.late, tardiness, id], (err, updateResult) => {
+    pool.query(sqlUpdate, [attendance.extra, attendance.hours_worked, total_amount_pay, earnings, overtime, attendance.status, attendance.late, tardiness, id], (err, updateResult) => {
       if (err) {
         console.error(err);
         return res.json({ Status: false, Error: 'Query Error' });
       }
 
       // Fetch the updated record
-      con.query('SELECT * FROM attendance WHERE id = ?', [id], (err, updatedResult) => {
+      pool.query('SELECT * FROM attendance WHERE id = ?', [id], (err, updatedResult) => {
         if (err) {
           console.error(err);
           return res.json({ Status: false, Error: 'Query Error' });
@@ -673,7 +681,7 @@ router.post('/attendance/update/status/:id', (req, res) => {
   const { status } = req.body;
 
   // Fetch the existing attendance record
-  con.query('SELECT * FROM attendance WHERE id = ?', [id], (err, result) => {
+  pool.query('SELECT * FROM attendance WHERE id = ?', [id], (err, result) => {
     if (err) {
       console.error(err);
       return res.json({ Status: false, Error: 'Query Error' });
@@ -704,14 +712,14 @@ router.post('/attendance/update/status/:id', (req, res) => {
       WHERE id = ?
     `;
 
-    con.query(sqlUpdate, [attendance.status, total_amount_pay, earnings, overtime, tardiness, id], (err, updateResult) => {
+    pool.query(sqlUpdate, [attendance.status, total_amount_pay, earnings, overtime, tardiness, id], (err, updateResult) => {
       if (err) {
         console.error(err);
         return res.json({ Status: false, Error: 'Query Error' });
       }
 
       // Fetch the updated record
-      con.query('SELECT * FROM attendance WHERE id = ?', [id], (err, updatedResult) => {
+      pool.query('SELECT * FROM attendance WHERE id = ?', [id], (err, updatedResult) => {
         if (err) {
           console.error(err);
           return res.json({ Status: false, Error: 'Query Error' });
@@ -727,7 +735,7 @@ router.post('/attendance/update/status/:id', (req, res) => {
 router.get('/get-attendance-records', async (req, res) => {
   try {
     const sql = 'SELECT * FROM attendance';  // Adjust SQL query as needed
-    con.query(sql, (err, rows) => {
+    pool.query(sql, (err, rows) => {
       if (err) {
         console.error('Error fetching attendance records:', err);
         return res.status(500).send({ message: 'Error fetching attendance records' });
@@ -745,7 +753,7 @@ router.delete('/delete-attendance-record/:id', async (req, res) => {
   const recordId = req.params.id;
   try {
     const sql = 'DELETE FROM attendance WHERE id = ?';
-    con.query(sql, [recordId], (err, result) => {
+    pool.query(sql, [recordId], (err, result) => {
       if (err) {
         console.error('Error deleting attendance record:', err);
         return res.status(500).send({ Status: false, Error: 'Error deleting attendance record' });
@@ -780,13 +788,13 @@ router.post("/add_employee", upload.fields([
   `;
 
   // Check if emp_no is already used
-  con.query(sqlCheckEmpNo, [req.body.emp_no], (err, empNoResult) => {
+  pool.query(sqlCheckEmpNo, [req.body.emp_no], (err, empNoResult) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     if (empNoResult.length > 0) {
       return res.json({ Status: false, Error: "Employee Number is already in use." });
     } else {
       // Check if email is already used
-      con.query(sqlCheckEmail, [req.body.email], (err, emailResult) => {
+      pool.query(sqlCheckEmail, [req.body.email], (err, emailResult) => {
         if (err) return res.json({ Status: false, Error: "Query Error" });
         if (emailResult.length > 0) {
           return res.json({ Status: false, Error: "Email is already in use." });
@@ -837,7 +845,7 @@ router.post("/add_employee", upload.fields([
               disciplinary_formFile,
             ];
 
-            con.query(sqlInsertEmployee, [values], (insertErr, result) => {
+            pool.query(sqlInsertEmployee, [values], (insertErr, result) => {
               if (insertErr) return res.json({ Status: false, Error: "Query Error" });
               return res.json({ Status: true });
             });
@@ -858,7 +866,7 @@ router.put('/update_employee_image/:id', upload.single('image'), async (req, res
 
   try {
     // Step 1: Retrieve the current image filename associated with the employee
-    con.query(selectSql, [id], async (err, rows) => {
+    pool.query(selectSql, [id], async (err, rows) => {
       if (err) throw err;
       if (rows.length === 0) {
         return res.json({ Status: false, Error: "Employee not found" });
@@ -867,7 +875,7 @@ router.put('/update_employee_image/:id', upload.single('image'), async (req, res
       const currentImage = rows[0].image;
 
       // Step 2: Update the employee record with the new image filename
-      con.query(updateSql, [newImage, id], async (err) => {
+      pool.query(updateSql, [newImage, id], async (err) => {
         if (err) throw err;
 
         // Step 3: Delete the old image file from the file system
@@ -888,7 +896,7 @@ router.put('/update_employee_image/:id', upload.single('image'), async (req, res
 //get employee
 router.get("/employee", (req, res) => {
   const sql = "SELECT * FROM employee";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -901,7 +909,7 @@ router.get('/new_employee_count', (req, res) => {
     FROM employee
     WHERE date_hired >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
   `;
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result[0].newEmployeeCount });
   });
@@ -910,7 +918,7 @@ router.get('/new_employee_count', (req, res) => {
 router.get('/employee/:id', (req, res) => {
   const id = req.params.id;
   const sql = "SELECT * FROM employee WHERE id = ?";
-  con.query(sql,[id], (err, result) => {
+  pool.query(sql,[id], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -924,12 +932,12 @@ router.put('/edit_employee/:id', (req, res) => {
       SET emp_no = ?, fname = ?, mname = ?, lname = ?, gender = ?, birth_date = ?, phone_number = ?, perma_address = ?, emergency_name=?, emergency_relationship=?, emergency_phone_number=?, date_hired = ?, pay_frequency = ?, rate_per_day = ?, rate_per_hour = ?, employee_status = ?, term_date =?, department = ?, project = ?, position = ?, email = ?, salary = ?, start_time = ?, out_time = ?, term_date = ?
       WHERE id = ?`;
 
-  con.query(sqlCheckEmpNo, [req.body.emp_no, id], (err, empNoResult) => {
+  pool.query(sqlCheckEmpNo, [req.body.emp_no, id], (err, empNoResult) => {
     if (err) return res.json({ Status: false, Error: "Query Error" + err });
     if (empNoResult.length > 0) {
         return res.json({ Status: false, Error: "Employee Number is already in use." });
     } else {
-        con.query(sqlCheckEmail, [req.body.email, id], (err, emailResult) => {
+        pool.query(sqlCheckEmail, [req.body.email, id], (err, emailResult) => {
             if (err) return res.json({ Status: false, Error: "Query Error" + err });
             if (emailResult.length > 0) {
                 return res.json({ Status: false, Error: "Email is already in use." });
@@ -965,7 +973,7 @@ router.put('/edit_employee/:id', (req, res) => {
                   id
               ];
 
-              con.query(sqlUpdateEmployee, values, (err, result) => {
+              pool.query(sqlUpdateEmployee, values, (err, result) => {
                   if (err) return res.json({ Status: false, Error: "Query Error" + err });
                   return res.json({ Status: true, Result: result });
               });
@@ -988,7 +996,7 @@ router.put('/deactivate_employee/:id', (req, res) => {
 
   const values = ['Inactive', currentDate, id];
 
-  con.query(sqlDeactivateEmployee, values, (err, result) => {
+  pool.query(sqlDeactivateEmployee, values, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error: " + err });
     return res.json({ Status: true, Result: result });
   });
@@ -1012,7 +1020,7 @@ router.post('/create_new_password/:id', (req, res) => {
 
     // Update the password in the database
     const sqlUpdatePassword = "UPDATE employee SET password = ? WHERE id = ?";
-    con.query(sqlUpdatePassword, [hash, employeeId], (err, result) => {
+    pool.query(sqlUpdatePassword, [hash, employeeId], (err, result) => {
       if (err) return res.json({ Status: false, Error: "Query Error" });
       if (result.affectedRows === 0) {
         return res.json({ Status: false, Error: "Employee not found" });
@@ -1038,7 +1046,7 @@ router.delete('/delete_employee/:id', async (req, res) => {
   
   try {
     // Step 1: Retrieve the image filename and emp_no associated with the employee
-    con.query(selectSql, [id], async (err, rows) => {
+    pool.query(selectSql, [id], async (err, rows) => {
       if (err) {
         console.error(err);
         return res.json({ Status: false, Error: "Error retrieving employee records" });
@@ -1059,7 +1067,7 @@ router.delete('/delete_employee/:id', async (req, res) => {
       } = rows[0];
       
       // Start a transaction
-      con.beginTransaction(async (err) => {
+      pool.beginTransaction(async (err) => {
         if (err) {
           console.error(err);
           return res.json({ Status: false, Error: "Error starting transaction" });
@@ -1067,36 +1075,36 @@ router.delete('/delete_employee/:id', async (req, res) => {
 
         try {
           // Step 2: Delete the associated leave records
-          con.query(deleteLeaveSql, [id], (err) => {
+          pool.query(deleteLeaveSql, [id], (err) => {
             if (err) {
-              return con.rollback(() => {
+              return pool.rollback(() => {
                 console.error(err);
                 res.json({ Status: false, Error: "Error deleting leave records" });
               });
             }
 
             // Step 3: Delete the associated attendance records
-            con.query(deleteAttendanceSql, [emp_no], (err) => {
+            pool.query(deleteAttendanceSql, [emp_no], (err) => {
               if (err) {
-                return con.rollback(() => {
+                return pool.rollback(() => {
                   console.error(err);
                   res.json({ Status: false, Error: "Error deleting attendance records" });
                 });
               }
 
               // Step 4: Delete the employee record from the database
-              con.query(deleteEmployeeSql, [id], async (err) => {
+              pool.query(deleteEmployeeSql, [id], async (err) => {
                 if (err) {
-                  return con.rollback(() => {
+                  return pool.rollback(() => {
                     console.error(err);
                     res.json({ Status: false, Error: "Error deleting employee record" });
                   });
                 }
                 
                 // Step 5: Commit the transaction
-                con.commit(async (err) => {
+                pool.commit(async (err) => {
                   if (err) {
-                    return con.rollback(() => {
+                    return pool.rollback(() => {
                       console.error(err);
                       res.json({ Status: false, Error: "Error committing transaction" });
                     });
@@ -1131,7 +1139,7 @@ router.delete('/delete_employee/:id', async (req, res) => {
           });
         } catch (err) {
           console.error(err);
-          con.rollback(() => {
+          pool.rollback(() => {
             return res.json({ Status: false, Error: "Error during transaction" });
           });
         }
@@ -1151,7 +1159,7 @@ router.post('/upload_resume/:id', upload.single('resume'), async (req, res) => {
   const updateResumeSql = "UPDATE employee SET resume = ? WHERE id = ?";
 
   try {
-    con.query(updateResumeSql, [resume, id], (err, result) => {
+    pool.query(updateResumeSql, [resume, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1171,7 +1179,7 @@ router.delete('/delete_resume/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the resume filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1182,7 +1190,7 @@ router.delete('/delete_resume/:id', async (req, res) => {
       const { resume } = rows[0];
 
       // Step 2: Update the employee record to set resume to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1214,7 +1222,7 @@ router.post('/upload_joboffer/:id', upload.single('job_offer'), async (req, res)
   const updateJobOfferSql = "UPDATE employee SET job_offer = ? WHERE id = ?";
 
   try {
-    con.query(updateJobOfferSql, [job_offer, id], (err, result) => {
+    pool.query(updateJobOfferSql, [job_offer, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1234,7 +1242,7 @@ router.delete('/delete_joboffer/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the job_offer filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1245,7 +1253,7 @@ router.delete('/delete_joboffer/:id', async (req, res) => {
       const { job_offer } = rows[0];
 
       // Step 2: Update the employee record to set job_offer to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1277,7 +1285,7 @@ router.post('/upload_contract/:id', upload.single('contract'), async (req, res) 
   const updateContractSql = "UPDATE employee SET contract = ? WHERE id = ?";
 
   try {
-    con.query(updateContractSql, [contract, id], (err, result) => {
+    pool.query(updateContractSql, [contract, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1297,7 +1305,7 @@ router.delete('/delete_contract/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the contract filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1308,7 +1316,7 @@ router.delete('/delete_contract/:id', async (req, res) => {
       const { contract } = rows[0];
 
       // Step 2: Update the employee record to set contract to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1340,7 +1348,7 @@ router.post('/upload_valid_id/:id', upload.single('valid_id'), async (req, res) 
   const updateIDsSql = "UPDATE employee SET valid_id = ? WHERE id = ?";
 
   try {
-    con.query(updateIDsSql, [valid_id, id], (err, result) => {
+    pool.query(updateIDsSql, [valid_id, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1360,7 +1368,7 @@ router.delete('/delete_valid_id/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the valid_id filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1371,7 +1379,7 @@ router.delete('/delete_valid_id/:id', async (req, res) => {
       const { valid_id } = rows[0];
 
       // Step 2: Update the employee record to set valid_id to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1403,7 +1411,7 @@ router.post('/upload_application_form/:id', upload.single('application_form'), a
   const updateApplicationFormSql = "UPDATE employee SET application_form = ? WHERE id = ?";
 
   try {
-    con.query(updateApplicationFormSql, [application_form, id], (err, result) => {
+    pool.query(updateApplicationFormSql, [application_form, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1423,7 +1431,7 @@ router.delete('/delete_application_form/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the application_form filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1434,7 +1442,7 @@ router.delete('/delete_application_form/:id', async (req, res) => {
       const { application_form } = rows[0];
 
       // Step 2: Update the employee record to set application_form to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1466,7 +1474,7 @@ router.post('/upload_disciplinary_form/:id', upload.single('disciplinary_form'),
   const updateDisciplinaryFormSql = "UPDATE employee SET disciplinary_form = ? WHERE id = ?";
 
   try {
-    con.query(updateDisciplinaryFormSql, [disciplinary_form, id], (err, result) => {
+    pool.query(updateDisciplinaryFormSql, [disciplinary_form, id], (err, result) => {
       if (err) {
         throw err;
       }
@@ -1486,7 +1494,7 @@ router.delete('/delete_disciplinary_form/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the disciplinary_form filename associated with the employee
-    con.query(selectSql, [id], (err, rows) => {
+    pool.query(selectSql, [id], (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1497,7 +1505,7 @@ router.delete('/delete_disciplinary_form/:id', async (req, res) => {
       const { disciplinary_form } = rows[0];
 
       // Step 2: Update the employee record to set disciplinary_form to NULL
-      con.query(deleteSql, [id], (err) => {
+      pool.query(deleteSql, [id], (err) => {
         if (err) {
           throw err;
         }
@@ -1523,7 +1531,7 @@ router.delete('/delete_disciplinary_form/:id', async (req, res) => {
 
 router.get('/admin_count', (req, res) => {
   const sql = "select count(id) as admin from admin";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1531,7 +1539,7 @@ router.get('/admin_count', (req, res) => {
 
 router.get('/employee_count', (req, res) => {
   const sql = "select count(id) as employee from employee";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1539,7 +1547,7 @@ router.get('/employee_count', (req, res) => {
 
 router.get('/department_count', (req, res) => {
   const sql = "select count(id) as department from department";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1547,7 +1555,7 @@ router.get('/department_count', (req, res) => {
 
 router.get('/project_count', (req, res) => {
   const sql = "select count(id) as project from project";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1555,7 +1563,7 @@ router.get('/project_count', (req, res) => {
 
 router.get('/position_count', (req, res) => {
   const sql = "select count(id) as position from position";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1570,7 +1578,7 @@ router.get("/employee_status_counts", (req, res) => {
       SUM(CASE WHEN employee_status = 'inactive' THEN 1 ELSE 0 END) AS inactiveCount
     FROM employee;
   `;
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result[0] });
   });
@@ -1579,7 +1587,7 @@ router.get("/employee_status_counts", (req, res) => {
 
 router.get('/admin_records', (req, res) => {
   const sql = "select * from admin"
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error"+err });
     return res.json({ Status: true, Result: result });
   });
@@ -1587,7 +1595,7 @@ router.get('/admin_records', (req, res) => {
 
 router.get('/pending_leave_count', (req, res) => {
   const sql = "SELECT COUNT(id) AS pendingLeaveCount FROM `leave` WHERE status = 'Pending'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -1596,7 +1604,7 @@ router.get('/pending_leave_count', (req, res) => {
 // In your express router file
 router.get('/fulfilled_leave_count', (req, res) => {
   const sql = "SELECT COUNT(id) AS fulfilledLeaveCount FROM `leave` WHERE status = 'Fulfilled'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -1605,7 +1613,7 @@ router.get('/fulfilled_leave_count', (req, res) => {
 // In your express router file
 router.get('/rejected_leave_count', (req, res) => {
   const sql = "SELECT COUNT(id) AS rejectedLeaveCount FROM `leave` WHERE status = 'Rejected'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -1613,7 +1621,7 @@ router.get('/rejected_leave_count', (req, res) => {
 
 router.get('/leave', (req, res) => {
   const sql = "SELECT * FROM `leave`";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
   });
@@ -1625,7 +1633,7 @@ router.put('/update_leave/:id', (req, res) => {
 
   // Update the leave status in the database
   const sql = "UPDATE `leave` SET status = ? WHERE id = ?";
-  con.query(sql, [status, leaveId], (err, result) => {
+  pool.query(sql, [status, leaveId], (err, result) => {
     if (err) {
       return res.json({ Status: false, Error: "Query Error" });
     }
@@ -1643,7 +1651,7 @@ router.delete('/delete_leave/:id', async (req, res) => {
 
   try {
     // Step 1: Retrieve the leave record from the database
-    con.query(selectSql, [leaveId], async (err, rows) => {
+    pool.query(selectSql, [leaveId], async (err, rows) => {
       if (err) {
         throw err;
       }
@@ -1652,7 +1660,7 @@ router.delete('/delete_leave/:id', async (req, res) => {
       }
       
       // Step 2: Delete the leave record from the database
-      con.query(deleteSql, [leaveId], async (err) => {
+      pool.query(deleteSql, [leaveId], async (err) => {
         if (err) {
           throw err;
         }
@@ -1670,7 +1678,7 @@ router.delete('/delete_leave/:id', async (req, res) => {
 // Fetch fulfilled attendance count
 router.get('/fulfilled_count', (req, res) => {
   const sql = "SELECT COUNT(*) AS fulfilledCount FROM attendance WHERE status = 'Fulfilled'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) {
       console.error(err);
       return res.json({ Status: false, Error: "Error fetching fulfilled attendance count" });
@@ -1682,7 +1690,7 @@ router.get('/fulfilled_count', (req, res) => {
 // Fetch rejected attendance count
 router.get('/rejected_count', (req, res) => {
   const sql = "SELECT COUNT(*) AS rejectedCount FROM attendance WHERE status = 'Rejected'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) {
       console.error(err);
       return res.json({ Status: false, Error: "Error fetching rejected attendance count" });
@@ -1694,7 +1702,7 @@ router.get('/rejected_count', (req, res) => {
 // Fetch pending attendance count
 router.get('/pending_count', (req, res) => {
   const sql = "SELECT COUNT(*) AS pendingCount FROM attendance WHERE status = 'Pending'";
-  con.query(sql, (err, result) => {
+  pool.query(sql, (err, result) => {
     if (err) {
       console.error(err);
       return res.json({ Status: false, Error: "Error fetching pending attendance count" });

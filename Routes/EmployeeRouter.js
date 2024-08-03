@@ -1,5 +1,5 @@
 import express from "express";
-import con from "../utils/db.js";
+import pool from "../utils/db.js";
 import bcryptjs from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
