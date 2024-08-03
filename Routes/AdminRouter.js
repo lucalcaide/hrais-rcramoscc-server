@@ -14,9 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-router.post("/login", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
   const queries = [
     { sql: "SELECT * FROM admin WHERE email = ?", role: 'admin' },
     { sql: "SELECT * FROM recruitment WHERE email = ?", role: 'recruitment' },
@@ -24,67 +23,36 @@ router.post("/login", (req, res) => {
     { sql: "SELECT * FROM employee WHERE email = ?", role: 'employee' }
   ];
 
-  let found = false;
-
-  queries.forEach(query => {
-    if (found) return;
-
-    con.query(query.sql, [email], (err, result) => {
-      if (err) {
-        console.error(`Query error for ${query.role}:`, err); // Log the specific error
-        if (!res.headersSent) { // Check if a response has already been sent
-          res.json({ loginStatus: false, Error: "Query error" });
-        }
-        found = true;
-        return;
-      }
+  try {
+    for (const query of queries) {
+      const [result] = await con.query(query.sql, [email]);
       if (result.length > 0) {
         if (query.role === 'employee' && result[0].employee_status === 'Inactive') {
-          if (!res.headersSent) {
-            res.json({ loginStatus: false, Error: "Account Deactivated!" });
-          }
-          found = true;
-          return;
+          return res.json({ loginStatus: false, Error: "Account Deactivated!" });
         }
 
-        bcryptjs.compare(password, result[0].password, (err, isMatch) => {
-          if (err || !isMatch) {
-            if (!res.headersSent) {
-              res.json({ loginStatus: false, Error: "Invalid Email or Password" });
-            }
-            found = true;
-            return;
-          }
-
-          if (isMatch) {
-            const email = result[0].email;
-            const fname = result[0].fname;
-            const lname = result[0].lname;
-            const id = result[0].id; // Ensure id is included in the response
-            const token = jwt.sign(
-              { role: query.role, email: email, id: id },
-              "jwt_secret_key",
-              { expiresIn: "1d" }
-            );
-            res.cookie("token", token, { httpOnly: true });
-            if (!res.headersSent) {
-              res.json({ loginStatus: true, role: query.role, id: id });
-            }
-            console.log(`User logged in: ${fname} ${lname}, Role: ${query.role}, ID: ${id}`);
-            found = true;
-          }
-        });
+        const isMatch = await bcryptjs.compare(password, result[0].password);
+        if (isMatch) {
+          const token = jwt.sign(
+            { role: query.role, email, id: result[0].id },
+            process.env.JWT_SECRET_KEY, // Use the environment variable
+            { expiresIn: "1d" }
+          );
+          res.cookie("token", token, { httpOnly: true });
+          return res.json({ loginStatus: true, role: query.role, id: result[0].id });
+        } else {
+          return res.json({ loginStatus: false, Error: "Invalid Email or Password" });
+        }
       }
-    });
-  });
-
-  // If no role found
-  setTimeout(() => {
-    if (!found && !res.headersSent) {
-      res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
     }
-  }, 500); // Adjust the timeout as needed
+
+    res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.json({ loginStatus: false, Error: "An error occurred" });
+  }
 });
+
 
 router.get('/verifyToken', (req, res) => {
   const token = req.cookies.token;
