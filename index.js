@@ -8,7 +8,6 @@ import { recruitmentRouter } from './Routes/RecruitmentRouter.js';
 import { payrollRouter } from './Routes/PayrollRouter.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import con from './utils/db.js'; // Ensure this import is correct
 import fs from 'fs';
 
 // Get directory name for ES module
@@ -29,10 +28,13 @@ app.use(cors({
     origin: "https://hrais-rcramoscc-client.onrender.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
-  }));  
+}));  
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Serve static files from the dist directory
+app.use(express.static(distPath));
 
 // API routes
 app.use('/auth', adminRouter);
@@ -61,10 +63,7 @@ app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-app.use(express.static(distPath));
-
-console.log('Static files directory:', distPath);
-
+// Serve the index.html for all other routes
 app.get('*', (req, res) => {
     const filePath = path.join(distPath, 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);

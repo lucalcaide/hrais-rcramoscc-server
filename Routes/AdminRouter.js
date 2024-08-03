@@ -66,7 +66,7 @@ router.post("/login", (req, res) => {
               "jwt_secret_key",
               { expiresIn: "1d" }
             );
-            res.cookie("token", token);
+            res.cookie("token", token, { httpOnly: true });
             if (!res.headersSent) {
               res.json({ loginStatus: true, role: query.role, id: id });
             }
@@ -91,11 +91,12 @@ router.get('/verifyToken', (req, res) => {
   if (!token) return res.json({ loginStatus: false, Error: "No token provided" });
 
   jwt.verify(token, 'jwt_secret_key', (err, decoded) => {
-    if (err) return res.json({ loginStatus: false, Error: "Failed to authenticate token" });
-
+    if (err) return res.json({ loginStatus: false, Error: "Invalid token" });
+    
     res.json({
       loginStatus: true,
-      user: decoded
+      role: decoded.role,
+      id: decoded.id
     });
   });
 });
