@@ -61,7 +61,14 @@ app.get('/verify', verifyUser, (req, res) => {
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
-    res.sendFile(path.join('dist', 'index.html'));
+    const filePath = path.join(__dirname, 'HumanResourceIS', 'dist', 'index.html');
+    console.log(`Attempting to serve file at: ${filePath}`);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('Error sending file:', err);
+            res.status(err.status).end();
+        }
+    });
 });
 
 app.listen(PORT, () => {
