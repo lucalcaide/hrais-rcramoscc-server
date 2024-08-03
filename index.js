@@ -35,9 +35,6 @@ app.use('/employee', employeeRouter);
 app.use('/recruitment', recruitmentRouter);
 app.use('/payroll', payrollRouter);
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
-
 const verifyUser = (req, res, next) => {
     const token = req.cookies.token;
     if (token) {
@@ -59,7 +56,7 @@ app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-// Serve the React app for all other routes
+app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
