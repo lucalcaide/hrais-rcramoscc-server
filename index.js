@@ -26,7 +26,7 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your_secret_key';
 
 // CORS configuration
 app.use(cors({
-    origin: ["bxpkkfabofwg7onomdrq-mysql.services.clever-cloud.com"], // Adjust if needed
+    origin: ["https://hrais-rcramoscc-client.onrender.com"], // Adjust if needed
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
