@@ -61,7 +61,7 @@ app.get('/verify', verifyUser, (req, res) => {
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    res.sendFile(path.join('dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
