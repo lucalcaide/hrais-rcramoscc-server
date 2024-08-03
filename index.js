@@ -42,11 +42,11 @@ app.use('/payroll', payrollRouter);
 
 const verifyUser = (req, res, next) => {
     const token = req.cookies.token;
-    console.log("Token received:", token);
+    console.log('Token from cookies:', token); // Debug log
     if (token) {
         jwt.verify(token, JWT_SECRET_KEY, (err, decoded) => {
             if (err) {
-                console.error("JWT verification failed:", err);
+                console.error('Token verification error:', err); // Debug log
                 return res.status(401).json({ Status: false, Error: "Invalid token" });
             }
             req.id = decoded.id;
@@ -54,11 +54,10 @@ const verifyUser = (req, res, next) => {
             next();
         });
     } else {
-        console.error("No token found");
+        console.error('No token found in cookies'); // Debug log
         return res.status(401).json({ Status: false, Error: "Not Authenticated" });
     }
 };
-
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {

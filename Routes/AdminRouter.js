@@ -28,10 +28,10 @@ router.post('/login', (req, res) => {
 
       // Set cookie with token
       res.cookie("token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production', // Set to true for HTTPS in production
-          sameSite: 'None' // Or 'Lax' based on your requirements
-      });
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'None'
+    });
 
       // Respond with user details and login status
       res.json({
