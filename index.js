@@ -14,8 +14,10 @@ import fs from 'fs';
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const parentDir = path.join(__dirname, '..'); // Adjust as needed
-console.log('Files in parent directory:', fs.readdirSync(parentDir));
+const distPath = path.join(__dirname, '..', 'HumanResourceIS', 'dist'); // Updated path
+
+console.log('Files in parent directory:', fs.readdirSync(path.join(__dirname, '..')));
+console.log('Static files directory:', distPath);
 
 const app = express();
 
@@ -59,20 +61,20 @@ app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-app.use(express.static(path.join(__dirname, '../HumanResourceIS/dist')));
-console.log('Static files directory:', path.join(__dirname, 'dist'));
+app.use(express.static(distPath));
+console.log('Static files directory:', distPath);
 
 app.get('*', (req, res) => {
-    const filePath = path.join(__dirname, '../HumanResourceIS/dist', 'index.html');
+    const filePath = path.join(distPath, 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
-    console.log('Files in dist:', fs.readdirSync(path.join(__dirname, 'dist')));
+    console.log('Files in dist:', fs.readdirSync(distPath));
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('Error sending file:', err);
             res.status(err.status).end();
         }
     });
-})
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
