@@ -59,10 +59,11 @@ app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '../HumanResourceIS/dist')));
+console.log('Static files directory:', path.join(__dirname, 'dist'));
 
 app.get('*', (req, res) => {
-    const filePath = path.join(__dirname, 'dist', 'index.html');
+    const filePath = path.join(__dirname, '../HumanResourceIS/dist', 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
     console.log('Files in dist:', fs.readdirSync(path.join(__dirname, 'dist')));
     res.sendFile(filePath, (err) => {
