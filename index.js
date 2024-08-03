@@ -37,7 +37,7 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, role: user.role },
     JWT_SECRET_KEY,
-    { expiresIn: '1h' }
+    { expiresIn: '1h' } // Adjust expiry as needed
   );
 };
 
@@ -72,6 +72,7 @@ app.use('/payroll', payrollRouter);
 // Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
   const authHeader = req.headers['authorization'];
+  
   if (!authHeader) {
     return res.status(400).send('Bad Request: Missing Authorization Header');
   }
