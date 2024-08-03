@@ -9,6 +9,9 @@ import { payrollRouter } from './Routes/PayrollRouter.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables from .env file
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -21,8 +24,7 @@ console.log('Static files directory:', distPath);
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || b42bdb5c4cd8a748403c0f78169416b066127336a22227e66ead5eccc6502b1e;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 if (!JWT_SECRET_KEY) {
     console.error('JWT_SECRET_KEY is not set in environment variables');
@@ -65,7 +67,6 @@ const verifyUser = (req, res, next) => {
       res.status(400).send('Invalid Token');
   }
 };
-
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
