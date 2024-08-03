@@ -19,8 +19,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your_secret_key';
 
+// CORS configuration
 app.use(cors({
-    origin: ["bxpkkfabofwg7onomdrq-mysql.services.clever-cloud.com"],
+    origin: ["bxpkkfabofwg7onomdrq-mysql.services.clever-cloud.com"], // Adjust if needed
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
@@ -28,12 +29,14 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// API routes
 app.use('/auth', adminRouter);
 app.use('/employee', employeeRouter);
 app.use('/recruitment', recruitmentRouter);
 app.use('/payroll', payrollRouter);
 
-app.use(express.static('Public'));
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const verifyUser = (req, res, next) => {
     const token = req.cookies.token;
@@ -51,11 +54,12 @@ const verifyUser = (req, res, next) => {
     }
 };
 
+// Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-// All other GET requests not handled before will return the React app
+// Serve the React app for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
