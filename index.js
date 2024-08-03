@@ -57,9 +57,11 @@ app.get('/verify', verifyUser, (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
+
 app.get('*', (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
+    console.log('Files in dist:', fs.readdirSync(path.join(__dirname, 'dist')));
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('Error sending file:', err);
