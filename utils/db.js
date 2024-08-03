@@ -11,7 +11,7 @@ const pool = mysql.createPool({
   port: process.env.MYSQL_ADDON_PORT,
 });
 
-pool.connect((err) => {
+con.connect((err) => {
   if (err) {
     console.error('Error connecting to the database:', err);
     return;
