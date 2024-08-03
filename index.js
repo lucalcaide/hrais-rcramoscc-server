@@ -29,7 +29,7 @@ app.use(cors({
     origin: "https://hrais-rcramoscc-client.onrender.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
-}));
+  }));  
 
 app.use(express.json());
 app.use(cookieParser());
