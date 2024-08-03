@@ -26,7 +26,7 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your_secret_key';
 
 // CORS configuration
 app.use(cors({
-    origin: ["https://hrais-rcramoscc-client.onrender.com"], // Adjust if needed
+    origin: "https://hrais-rcramoscc-client.onrender.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
@@ -42,9 +42,11 @@ app.use('/payroll', payrollRouter);
 
 const verifyUser = (req, res, next) => {
     const token = req.cookies.token;
+    console.log("Token received:", token);
     if (token) {
         jwt.verify(token, JWT_SECRET_KEY, (err, decoded) => {
             if (err) {
+                console.error("JWT verification failed:", err);
                 return res.status(401).json({ Status: false, Error: "Invalid token" });
             }
             req.id = decoded.id;
@@ -52,9 +54,11 @@ const verifyUser = (req, res, next) => {
             next();
         });
     } else {
+        console.error("No token found");
         return res.status(401).json({ Status: false, Error: "Not Authenticated" });
     }
 };
+
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
@@ -68,12 +72,13 @@ console.log('Static files directory:', distPath);
 app.get('*', (req, res) => {
     const filePath = path.join(distPath, 'index.html');
     console.log(`Attempting to serve file at: ${filePath}`);
-    console.log(`Request URL: ${req.originalUrl}`);
-    try {
-        console.log('Files in dist:', fs.readdirSync(distPath));
-    } catch (err) {
-        console.error('Error reading dist directory:', err);
-    }
+    fs.readdir(distPath, (err, files) => {
+        if (err) {
+            console.error('Error reading dist directory:', err);
+        } else {
+            console.log('Files in dist directory:', files);
+        }
+    });
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('Error serving index.html:', err);
