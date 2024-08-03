@@ -62,6 +62,7 @@ app.get('/verify', verifyUser, (req, res) => {
 });
 
 app.use(express.static(distPath));
+
 console.log('Static files directory:', distPath);
 
 app.get('*', (req, res) => {
@@ -75,8 +76,8 @@ app.get('*', (req, res) => {
     }
     res.sendFile(filePath, (err) => {
         if (err) {
-            console.error('Error sending file:', err);
-            res.status(err.status).end();
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Internal Server Error');
         }
     });
 });
