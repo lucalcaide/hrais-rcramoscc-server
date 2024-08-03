@@ -14,33 +14,42 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-// Login route
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
+router.post("/login", async (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const queries = [
+    { sql: "SELECT * FROM admin WHERE email = ?", role: 'admin' },
+    { sql: "SELECT * FROM recruitment WHERE email = ?", role: 'recruitment' },
+    { sql: "SELECT * FROM payroll WHERE email = ?", role: 'payroll' },
+    { sql: "SELECT * FROM employee WHERE email = ?", role: 'employee' }
+  ];
 
-  // Dummy authentication for example; replace with your actual logic
-  if (email === 'admin@gmail.com' && password === '12345') {
-      const token = jwt.sign(
-          { role: 'admin', email, id: 10 }, // Payload with user info
-          JWT_SECRET_KEY, 
-          { expiresIn: '1h' } // Token expiration
-      );
+  try {
+    for (let query of queries) {
+      const [rows] = await con.promise().query(query.sql, [email]);
+      if (rows.length > 0) {
+        if (query.role === 'employee' && rows[0].employee_status === 'Inactive') {
+          return res.json({
+            loginStatus: false,
+            Error: "Account Deactivated!"
+          });
+        }
 
-      // Set cookie with token
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'None'
-    });
+        const isMatch = await bcryptjs.compare(password, rows[0].password);
+        if (isMatch) {
+          const { email, fname, lname, id } = rows[0];
+          const token = jwt.sign({ role: query.role, email, id }, "jwt_secret_key", { expiresIn: "1d" });
+          res.cookie("token", token);
+          return res.json({ loginStatus: true, role: query.role, id });
+        } else {
+          return res.json({ loginStatus: false, Error: "Invalid Email or Password" });
+        }
+      }
+    }
 
-      // Respond with user details and login status
-      res.json({
-          loginStatus: true,
-          role: 'admin',
-          id: 10
-      });
-  } else {
-      res.status(401).json({ loginStatus: false, Error: 'Invalid credentials' });
+    res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
+  } catch (error) {
+    res.json({ loginStatus: false, Error: "Query error" });
   }
 });
 

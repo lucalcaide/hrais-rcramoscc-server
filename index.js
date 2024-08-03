@@ -10,10 +10,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import con from './utils/db.js'; // Ensure this import is correct
 import fs from 'fs';
-import dotenv from 'dotenv'; // Import dotenv
-
-// Configure dotenv to load environment variables
-dotenv.config();
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -46,11 +42,9 @@ app.use('/payroll', payrollRouter);
 
 const verifyUser = (req, res, next) => {
     const token = req.cookies.token;
-    console.log('Token from cookies:', token); // Debug log
     if (token) {
         jwt.verify(token, JWT_SECRET_KEY, (err, decoded) => {
             if (err) {
-                console.error('Token verification error:', err); // Debug log
                 return res.status(401).json({ Status: false, Error: "Invalid token" });
             }
             req.id = decoded.id;
@@ -58,7 +52,6 @@ const verifyUser = (req, res, next) => {
             next();
         });
     } else {
-        console.error('No token found in cookies'); // Debug log
         return res.status(401).json({ Status: false, Error: "Not Authenticated" });
     }
 };
