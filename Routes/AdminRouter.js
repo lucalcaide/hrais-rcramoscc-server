@@ -47,7 +47,7 @@ router.post("/login", (req, res) => {
           return;
         }
 
-        bcrypt.compare(password, result[0].password, (err, isMatch) => {
+        bcryptjs.compare(password, result[0].password, (err, isMatch) => {
           if (err || !isMatch) {
             if (!res.headersSent) {
               res.json({ loginStatus: false, Error: "Invalid Email or Password" });
