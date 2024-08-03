@@ -9,6 +9,7 @@ import { payrollRouter } from './Routes/PayrollRouter.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import con from './utils/db.js'; // Ensure this import is correct
+import fs from 'fs';
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
