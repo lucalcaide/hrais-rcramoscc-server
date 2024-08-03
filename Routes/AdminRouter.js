@@ -31,26 +31,27 @@ router.post("/login", (req, res) => {
 
     con.query(query.sql, [email], (err, result) => {
       if (err) {
-        res.json({ loginStatus: false, Error: "Query error" });
+        console.error(`Query error for ${query.role}:`, err); // Log the specific error
+        if (!res.headersSent) { // Check if a response has already been sent
+          res.json({ loginStatus: false, Error: "Query error" });
+        }
         found = true;
         return;
       }
       if (result.length > 0) {
         if (query.role === 'employee' && result[0].employee_status === 'Inactive') {
-          res.json({
-            loginStatus: false,
-            Error: "Account Deactivated!"
-          });
+          if (!res.headersSent) {
+            res.json({ loginStatus: false, Error: "Account Deactivated!" });
+          }
           found = true;
           return;
         }
 
         bcrypt.compare(password, result[0].password, (err, isMatch) => {
           if (err || !isMatch) {
-            res.json({
-              loginStatus: false,
-              Error: "Invalid Email or Password"
-            });
+            if (!res.headersSent) {
+              res.json({ loginStatus: false, Error: "Invalid Email or Password" });
+            }
             found = true;
             return;
           }
@@ -66,7 +67,9 @@ router.post("/login", (req, res) => {
               { expiresIn: "1d" }
             );
             res.cookie("token", token);
-            res.json({ loginStatus: true, role: query.role, id: id });
+            if (!res.headersSent) {
+              res.json({ loginStatus: true, role: query.role, id: id });
+            }
             console.log(`User logged in: ${fname} ${lname}, Role: ${query.role}, ID: ${id}`);
             found = true;
           }
@@ -77,11 +80,8 @@ router.post("/login", (req, res) => {
 
   // If no role found
   setTimeout(() => {
-    if (!found) {
-      res.json({
-        loginStatus: false,
-        Error: "Check your credentials and Try Again."
-      });
+    if (!found && !res.headersSent) {
+      res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
     }
   }, 500); // Adjust the timeout as needed
 });
