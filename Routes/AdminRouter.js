@@ -54,29 +54,15 @@ router.post("/login", async (req, res) => {
 });
 
 router.get('/verifyToken', (req, res) => {
-  const token = req.cookies.token; // Assuming the token is stored in cookies
-  if (!token) return res.json({ loginStatus: false, Error: "No token provided" });
+  const token = req.cookies.token; // Ensure token is in cookies
+  if (!token) return res.status(401).json({ loginStatus: false, Error: "No token provided" });
 
   jwt.verify(token, 'jwt_secret_key', (err, decoded) => {
-    if (err) return res.json({ loginStatus: false, Error: "Failed to authenticate token" });
+    if (err) return res.status(401).json({ loginStatus: false, Error: "Failed to authenticate token" });
 
     res.json({
       loginStatus: true,
-      user: decoded, // This contains email, role, id, etc.
-    });
-  });
-});
-
-router.get('/verifyToken', (req, res) => {
-  const token = req.cookies.token; // Assuming the token is stored in cookies
-  if (!token) return res.json({ loginStatus: false, Error: "No token provided" });
-
-  jwt.verify(token, 'jwt_secret_key', (err, decoded) => {
-    if (err) return res.json({ loginStatus: false, Error: "Failed to authenticate token" });
-
-    res.json({
-      loginStatus: true,
-      user: decoded, // This contains email, role, id, etc.
+      user: decoded, // Contains email, role, id, etc.
     });
   });
 });
