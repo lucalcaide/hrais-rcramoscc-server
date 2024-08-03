@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 app.use(cors({
-    origin: ["https://hrais-rcramoscc-client.onrender.com"],
+    origin: ["bxpkkfabofwg7onomdrq-mysql.services.clever-cloud.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
