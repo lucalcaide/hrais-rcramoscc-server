@@ -10,6 +10,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import con from './utils/db.js'; // Ensure this import is correct
 import fs from 'fs';
+import dotenv from 'dotenv'; // Import dotenv
+
+// Configure dotenv to load environment variables
+dotenv.config();
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
