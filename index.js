@@ -6,6 +6,7 @@ import { adminRouter } from './Routes/AdminRouter.js';
 import { employeeRouter } from './Routes/EmployeeRouter.js';
 import { recruitmentRouter } from './Routes/RecruitmentRouter.js';
 import { payrollRouter } from './Routes/PayrollRouter.js';
+import path from 'path';
 
 const app = express();
 
@@ -36,7 +37,7 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ Status: false, Error: "Invalid token" });
             }
             req.id = decoded.id;
-            req.role = decoded.role; // Fix the access to decoded.role
+            req.role = decoded.role;
             next();
         });
     } else {
@@ -46,6 +47,11 @@ const verifyUser = (req, res, next) => {
 
 app.get('/verify', verifyUser, (req, res) => {
     return res.json({ Status: true, role: req.role, id: req.id });
+});
+
+// Serve the React app for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.resolve('Public', 'index.html'));
 });
 
 app.listen(PORT, () => {
