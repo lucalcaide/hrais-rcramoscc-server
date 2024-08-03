@@ -14,6 +14,8 @@ import fs from 'fs';
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const parentDir = path.join(__dirname, '..'); // Adjust as needed
+console.log('Files in parent directory:', fs.readdirSync(parentDir));
 
 const app = express();
 
@@ -69,7 +71,7 @@ app.get('*', (req, res) => {
             res.status(err.status).end();
         }
     });
-});
+})
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
