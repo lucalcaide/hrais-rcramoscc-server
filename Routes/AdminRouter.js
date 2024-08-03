@@ -61,7 +61,6 @@ router.post("/login", async (req, res) => {
   return res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
 });
 
-
 router.get('/verifyToken', (req, res) => {
   const token = req.cookies.token;
   if (!token) return res.json({ loginStatus: false, Error: "No token provided" });
@@ -240,7 +239,6 @@ router.put("/update_department/:id", async (req, res) => {
   }
 });
 
-
 router.delete("/delete_department/:id", async (req, res) => {
   const departmentId = req.params.id;
   try {
@@ -303,7 +301,6 @@ router.put("/update_project/:id", async (req, res) => {
   }
 });
 
-
 router.delete("/delete_project/:id", async (req, res) => { 
   const projectId = req.params.id;
   const sql = "DELETE FROM project WHERE id = ?";
@@ -320,7 +317,6 @@ router.delete("/delete_project/:id", async (req, res) => {
   }
 });
 
-
 //get position
 router.get("/position", async (req, res) => {
   const sql = "SELECT * FROM position";
@@ -333,7 +329,6 @@ router.get("/position", async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
 
 router.post("/add_position", async (req, res) => {
   const sqlCheck = "SELECT * FROM position WHERE name = ?";
@@ -356,7 +351,6 @@ router.post("/add_position", async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
 
 router.put("/update_position/:id", async (req, res) => {
   const sqlCheck = "SELECT * FROM position WHERE name = ? AND id != ?";
@@ -396,7 +390,6 @@ router.delete("/delete_position/:id", async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
 
 //upload files
 
@@ -731,7 +724,6 @@ router.get('/get-attendance-records', async (req, res) => {
   }
 });
 
-
 // Endpoint to delete an attendance record
 router.delete('/delete-attendance-record/:id', async (req, res) => {
   const recordId = req.params.id;
@@ -748,7 +740,6 @@ router.delete('/delete-attendance-record/:id', async (req, res) => {
     res.status(500).send({ Status: false, Error: 'Failed to delete attendance record' });
   }
 });
-
 
 //adding employee
 router.post("/add_employee", upload.fields([
@@ -887,7 +878,6 @@ router.get("/employee", async (req, res) => {
   }
 });
 
-
 //get new hires
 router.get('/new_employee_count', async (req, res) => {
   const sql = `
@@ -904,7 +894,6 @@ router.get('/new_employee_count', async (req, res) => {
   }
 });
 
-
 router.get('/employee/:id', async (req, res) => {
   const id = req.params.id;
   const sql = "SELECT * FROM employee WHERE id = ?";
@@ -916,7 +905,6 @@ router.get('/employee/:id', async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
 
 router.put('/edit_employee/:id', async (req, res) => {
   const id = req.params.id;
@@ -977,7 +965,6 @@ router.put('/edit_employee/:id', async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
 
 // Deactivate employee route
 router.put('/deactivate_employee/:id', async (req, res) => {
