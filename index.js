@@ -27,6 +27,7 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 if (!JWT_SECRET_KEY) {
     console.error('JWT_SECRET_KEY is not set in environment variables');
+    process.exit(1);
 } else {
     console.log('JWT_SECRET_KEY is loaded:', JWT_SECRET_KEY);
 }
@@ -72,12 +73,12 @@ app.use('/payroll', payrollRouter);
 const verifyUser = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
-    return res.status(400).send('Bad Request: Missing Authorization Header');
+    return res.status(401).send('Unauthorized: Missing Authorization Header');
   }
 
   const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(400).send('Bad Request: Missing Token');
+    return res.status(401).send('Unauthorized: Missing Token');
   }
 
   try {

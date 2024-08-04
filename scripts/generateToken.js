@@ -4,9 +4,6 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config({ path: '../.env' });
 
-// Log the environment variables to see if they are loaded
-console.log('Loaded environment variables:', process.env);
-
 // Ensure the JWT_SECRET_KEY is set
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 if (!JWT_SECRET_KEY) {
