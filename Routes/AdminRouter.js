@@ -1427,7 +1427,7 @@ router.get('/new_employee_count', async (req, res) => {
 
 // Department count route
 router.get('/department_count', async (req, res) => {
-  const sql = "SELECT COUNT(id) AS department FROM department";
+  const sql = "SELECT COUNT(id) AS name FROM department";
   try {
     const [result] = await pool.query(sql);
     return res.json({ Status: true, Result: result[0] });
@@ -1439,7 +1439,7 @@ router.get('/department_count', async (req, res) => {
 
 // Project count route
 router.get('/project_count', async (req, res) => {
-  const sql = "SELECT COUNT(id) AS project FROM project";
+  const sql = "SELECT COUNT(id) AS name FROM project";
   try {
     const [result] = await pool.query(sql);
     return res.json({ Status: true, Result: result[0] });
@@ -1451,7 +1451,7 @@ router.get('/project_count', async (req, res) => {
 
 // Position count route
 router.get('/position_count', async (req, res) => {
-  const sql = "SELECT COUNT(id) AS position FROM position";
+  const sql = "SELECT COUNT(id) AS name FROM position";
   try {
     const [result] = await pool.query(sql);
     return res.json({ Status: true, Result: result[0] });
@@ -1466,7 +1466,7 @@ router.get('/pending_leave_count', async (req, res) => {
   const sql = "SELECT COUNT(id) AS pendingLeaveCount FROM `leave` WHERE status = 'Pending'";
   try {
     const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0] });
+    return res.json({ Status: true, Result: result[0].pendingLeaveCount });
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Query Error: " + err });
@@ -1478,7 +1478,7 @@ router.get('/fulfilled_leave_count', async (req, res) => {
   const sql = "SELECT COUNT(id) AS fulfilledLeaveCount FROM `leave` WHERE status = 'Fulfilled'";
   try {
     const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0] });
+    return res.json({ Status: true, Result: result[0].fulfilledLeaveCount });
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Query Error: " + err });
@@ -1490,7 +1490,7 @@ router.get('/rejected_leave_count', async (req, res) => {
   const sql = "SELECT COUNT(id) AS rejectedLeaveCount FROM `leave` WHERE status = 'Rejected'";
   try {
     const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0] });
+    return res.json({ Status: true, Result: result[0].rejectedLeaveCount });
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Query Error: " + err });
