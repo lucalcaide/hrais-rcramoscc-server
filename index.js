@@ -52,7 +52,6 @@ console.log('Generated Token:', token);
 
 app.use(cors({
   origin: 'https://hrais-rcramoscc-client.onrender.com',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true // Allow sending cookies and authorization headers
 }));
 
