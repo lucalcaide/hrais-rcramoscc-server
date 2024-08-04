@@ -41,12 +41,6 @@ const generateToken = (user) => {
   );
 };
 
-// Example user object
-const user = {
-  id: 1,
-  role: 'admin'
-};
-
 // Generate a token
 const token = generateToken(user);
 console.log('Generated Token:', token);
@@ -69,7 +63,25 @@ app.use('/employee', employeeRouter);
 app.use('/recruitment', recruitmentRouter);
 app.use('/payroll', payrollRouter);
 
-// Middleware function to verify the JWT token
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  // Assume authentication is successful and you have user details
+  const user = { id: 1, role: 'admin' }; // Example user object
+
+  // Generate a token
+  const token = generateToken(user);
+
+  // Set the token in a secure cookie
+  res.cookie('token', token, { 
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    sameSite: 'Strict' 
+  });
+
+  res.json({ message: 'Logged in successfully' });
+});
+
+/* Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
@@ -77,6 +89,23 @@ const verifyUser = (req, res, next) => {
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).send('Unauthorized: Missing Token');
+  }
+
+  try {
+    const verified = jwt.verify(token, JWT_SECRET_KEY); // Verify token with the secret key
+    req.user = verified;
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).send('Unauthorized: Invalid Token');
+  }
+};*/
+
+const verifyUser = (req, res, next) => {
+  const token = req.cookies.token; // Get the token from cookies
+
   if (!token) {
     return res.status(401).send('Unauthorized: Missing Token');
   }
