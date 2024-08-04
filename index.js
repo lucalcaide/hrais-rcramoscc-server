@@ -41,15 +41,17 @@ const generateToken = (user) => {
   );
 };
 
-/* Example user object
+/*
+// Example user object
 const user = {
   id: 1,
   role: 'admin'
-};*/
+};
 
 // Generate a token
 const token = generateToken(user);
 console.log('Generated Token:', token);
+*/
 
 app.use(cors({
   origin: 'https://hrais-rcramoscc-client.onrender.com',
