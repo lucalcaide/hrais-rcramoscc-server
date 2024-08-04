@@ -887,21 +887,7 @@ router.get("/employee", async (req, res) => {
   }
 });
 
-//get new hires
-router.get('/new_employee_count', async (req, res) => {
-  const sql = `
-    SELECT COUNT(id) AS newEmployeeCount
-    FROM employee
-    WHERE date_hired >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-  `;
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0].newEmployeeCount });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Query Error" });
-  }
-});
+
 
 router.get('/employee/:id', async (req, res) => {
   const id = req.params.id;
@@ -1406,6 +1392,39 @@ router.get('/employee_count', async (req, res) => {
   }
 });
 
+// Employee status counts route
+router.get("/employee_status_counts", async (req, res) => {
+  const sql = `
+    SELECT
+      SUM(CASE WHEN employee_status = 'active' THEN 1 ELSE 0 END) AS activeCount,
+      SUM(CASE WHEN employee_status = 'inactive' THEN 1 ELSE 0 END) AS inactiveCount
+    FROM employee;
+  `;
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result[0] });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Query Error: " + err });
+  }
+});
+
+//get new hires
+router.get('/new_employee_count', async (req, res) => {
+  const sql = `
+    SELECT COUNT(id) AS newEmployeeCount
+    FROM employee
+    WHERE date_hired >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+  `;
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result[0].newEmployeeCount });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Query Error: " + err });
+  }
+});
+
 // Department count route
 router.get('/department_count', async (req, res) => {
   const sql = "SELECT COUNT(id) AS department FROM department";
@@ -1436,35 +1455,6 @@ router.get('/position_count', async (req, res) => {
   try {
     const [result] = await pool.query(sql);
     return res.json({ Status: true, Result: result[0] });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Query Error: " + err });
-  }
-});
-
-// Employee status counts route
-router.get("/employee_status_counts", async (req, res) => {
-  const sql = `
-    SELECT
-      SUM(CASE WHEN employee_status = 'active' THEN 1 ELSE 0 END) AS activeCount,
-      SUM(CASE WHEN employee_status = 'inactive' THEN 1 ELSE 0 END) AS inactiveCount
-    FROM employee;
-  `;
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0] });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Query Error: " + err });
-  }
-});
-
-// Admin records route
-router.get('/admin_records', async (req, res) => {
-  const sql = "SELECT * FROM admin";
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result });
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Query Error: " + err });
@@ -1504,6 +1494,54 @@ router.get('/rejected_leave_count', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Query Error: " + err });
+  }
+});
+
+// Admin records route
+router.get('/admin_records', async (req, res) => {
+  const sql = "SELECT * FROM admin";
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Query Error: " + err });
+  }
+});
+
+// Fetch pending attendance count route
+router.get('/pending_count', async (req, res) => {
+  const sql = "SELECT COUNT(*) AS pendingCount FROM attendance WHERE status = 'Pending'";
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result[0].pendingCount });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Error fetching pending attendance count: " + err });
+  }
+});
+
+// Fetch fulfilled attendance count route
+router.get('/fulfilled_count', async (req, res) => {
+  const sql = "SELECT COUNT(*) AS fulfilledCount FROM attendance WHERE status = 'Fulfilled'";
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result[0].fulfilledCount });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Error fetching fulfilled attendance count: " + err });
+  }
+});
+
+// Fetch rejected attendance count route
+router.get('/rejected_count', async (req, res) => {
+  const sql = "SELECT COUNT(*) AS rejectedCount FROM attendance WHERE status = 'Rejected'";
+  try {
+    const [result] = await pool.query(sql);
+    return res.json({ Status: true, Result: result[0].rejectedCount });
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Error fetching rejected attendance count: " + err });
   }
 });
 
@@ -1558,42 +1596,6 @@ router.delete('/delete_leave/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.json({ Status: false, Error: "Error deleting leave record: " + err });
-  }
-});
-
-// Fetch fulfilled attendance count route
-router.get('/fulfilled_count', async (req, res) => {
-  const sql = "SELECT COUNT(*) AS fulfilledCount FROM attendance WHERE status = 'Fulfilled'";
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0].fulfilledCount });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Error fetching fulfilled attendance count: " + err });
-  }
-});
-
-// Fetch rejected attendance count route
-router.get('/rejected_count', async (req, res) => {
-  const sql = "SELECT COUNT(*) AS rejectedCount FROM attendance WHERE status = 'Rejected'";
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0].rejectedCount });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Error fetching rejected attendance count: " + err });
-  }
-});
-
-// Fetch pending attendance count route
-router.get('/pending_count', async (req, res) => {
-  const sql = "SELECT COUNT(*) AS pendingCount FROM attendance WHERE status = 'Pending'";
-  try {
-    const [result] = await pool.query(sql);
-    return res.json({ Status: true, Result: result[0].pendingCount });
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Error fetching pending attendance count: " + err });
   }
 });
 
