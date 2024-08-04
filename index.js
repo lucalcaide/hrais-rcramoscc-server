@@ -17,6 +17,7 @@ dotenv.config(); // Load environment variables from .env file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distPath = path.join(__dirname, 'dist');
+const publicPath = path.join(__dirname, 'Public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -101,8 +102,9 @@ app.get('/verify', verifyUser, (req, res) => {
 app.use(express.json());
 app.use(cookieParser());
 
-// Serve static files from the dist directory
+// Serve static files from the dist and Public directory
 app.use(express.static(distPath));
+app.use('/Public', express.static(publicPath));
 
 // API routes
 app.use('/auth', adminRouter);
