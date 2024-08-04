@@ -16,7 +16,7 @@ dotenv.config(); // Load environment variables from .env file
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.join(__dirname, 'dist'); // Adjusted path for the backend directory
+const distPath = path.join(__dirname, 'dist');
 
 console.log('Files in parent directory:', fs.readdirSync(path.join(__dirname, '..')));
 console.log('Static files directory:', distPath);
@@ -32,7 +32,7 @@ if (!JWT_SECRET_KEY) {
     console.log('JWT_SECRET_KEY is loaded:', JWT_SECRET_KEY);
 }
 
-// Example function to generate a token
+// Function to generate a token
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, role: user.role },
@@ -40,6 +40,12 @@ const generateToken = (user) => {
     { expiresIn: '1h' } // Set appropriate expiry time
   );
 };
+
+/* Example user object
+const user = {
+  id: 1,
+  role: 'admin'
+};*/
 
 // Generate a token
 const token = generateToken(user);
@@ -63,10 +69,11 @@ app.use('/employee', employeeRouter);
 app.use('/recruitment', recruitmentRouter);
 app.use('/payroll', payrollRouter);
 
+// Route to handle login and set token in cookie
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
   // Assume authentication is successful and you have user details
-  const user = { id: 1, role: 'admin' }; // Example user object
+  const user = { id: 10, email: 'admin@gmail.com', password: '12345', role: 'admin' }; // Example user object
 
   // Generate a token
   const token = generateToken(user);
