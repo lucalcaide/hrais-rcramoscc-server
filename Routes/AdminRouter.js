@@ -443,6 +443,94 @@ const upload = multer({
   }
 });
 
+// Adding employee
+router.post("/add_employee", upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'resume', maxCount: 1 },
+  { name: 'job_offer', maxCount: 1 },
+  { name: 'contract', maxCount: 1 },
+  { name: 'valid_id', maxCount: 1 },
+  { name: 'application_form', maxCount: 1 },
+  { name: 'disciplinary_form', maxCount: 1 }
+]), async (req, res) => {
+  const sqlCheckEmpNo = "SELECT id FROM employee WHERE emp_no = ?";
+  const sqlCheckEmail = "SELECT id FROM employee WHERE email = ?";
+  const sqlInsertEmployee = `
+    INSERT INTO employee
+    (emp_no, fname, mname, lname, gender, birth_date, phone_number, perma_address, emergency_name, emergency_relationship, emergency_phone_number, date_hired, pay_frequency, rate_per_day, rate_per_hour, employee_status, department, project, position, email, password, salary, start_time, out_time, image, resume, job_offer, contract, valid_id, application_form, disciplinary_form)
+    VALUES (?)
+  `;
+
+  try {
+    // Check if emp_no is already used
+    const [empNoResult] = await pool.query(sqlCheckEmpNo, [req.body.emp_no]);
+    if (empNoResult.length > 0) {
+      return res.json({ Status: false, Error: "Employee Number is already in use." });
+    }
+
+    // Check if email is already used
+    const [emailResult] = await pool.query(sqlCheckEmail, [req.body.email]);
+    if (emailResult.length > 0) {
+      return res.json({ Status: false, Error: "Email is already in use." });
+    }
+
+    // Hash the password
+    const hash = await bcryptjs.hash(req.body.password, 10);
+
+    // Collect file URLs
+    const imageFile = req.files.image ? req.files.image[0].location : null;
+    const resumeFile = req.files.resume ? req.files.resume[0].location : null;
+    const job_offerFile = req.files.job_offer ? req.files.job_offer[0].location : null;
+    const contractFile = req.files.contract ? req.files.contract[0].location : null;
+    const valid_idFile = req.files.valid_id ? req.files.valid_id[0].location : null;
+    const application_formFile = req.files.application_form ? req.files.application_form[0].location : null;
+    const disciplinary_formFile = req.files.disciplinary_form ? req.files.disciplinary_form[0].location : null;
+
+    // Insert employee data
+    const values = [
+      req.body.emp_no,
+      req.body.fname,
+      req.body.mname,
+      req.body.lname,
+      req.body.gender,
+      req.body.birth_date,
+      req.body.phone_number,
+      req.body.perma_address,
+      req.body.emergency_name,
+      req.body.emergency_relationship,
+      req.body.emergency_phone_number,
+      req.body.date_hired,
+      req.body.pay_frequency,
+      req.body.rate_per_day,
+      req.body.rate_per_hour,
+      req.body.employee_status,
+      req.body.department,
+      req.body.project,
+      req.body.position,
+      req.body.email,
+      hash,
+      req.body.salary,
+      req.body.start_time,
+      req.body.out_time,
+      imageFile,
+      resumeFile,
+      job_offerFile,
+      contractFile,
+      valid_idFile,
+      application_formFile,
+      disciplinary_formFile,
+    ];
+
+    await pool.query(sqlInsertEmployee, [values]);
+    return res.json({ Status: true, Message: "Employee added successfully" });
+
+  } catch (err) {
+    console.error(err);
+    return res.json({ Status: false, Error: "Error adding employee" });
+  }
+});
+
+// adding employee
 router.post('/upload-attendance', upload.single('attendance_file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).send({ message: 'No file uploaded' });
@@ -750,93 +838,6 @@ router.delete('/delete-attendance-record/:id', async (req, res) => {
   }
 });
 
-//adding employee
-router.post("/add_employee", upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'resume', maxCount: 1 },
-  { name: 'job_offer', maxCount: 1 },
-  { name: 'contract', maxCount: 1 },
-  { name: 'valid_id', maxCount: 1 },
-  { name: 'application_form', maxCount: 1 },
-  { name: 'disciplinary_form', maxCount: 1 }
-]), async (req, res) => {
-  const sqlCheckEmpNo = "SELECT id FROM employee WHERE emp_no = ?";
-  const sqlCheckEmail = "SELECT id FROM employee WHERE email = ?";
-  const sqlInsertEmployee = `
-    INSERT INTO employee
-    (emp_no, fname, mname, lname, gender, birth_date, phone_number, perma_address, emergency_name, emergency_relationship, emergency_phone_number, date_hired, pay_frequency, rate_per_day, rate_per_hour, employee_status, department, project, position, email, password, salary, start_time, out_time, image, resume, job_offer, contract, valid_id, application_form, disciplinary_form)
-    VALUES (?)
-  `;
-
-  try {
-    // Check if emp_no is already used
-    const [empNoResult] = await pool.query(sqlCheckEmpNo, [req.body.emp_no]);
-    if (empNoResult.length > 0) {
-      return res.json({ Status: false, Error: "Employee Number is already in use." });
-    }
-
-    // Check if email is already used
-    const [emailResult] = await pool.query(sqlCheckEmail, [req.body.email]);
-    if (emailResult.length > 0) {
-      return res.json({ Status: false, Error: "Email is already in use." });
-    }
-
-    // Hash the password
-    const hash = await bcryptjs.hash(req.body.password, 10);
-
-    // Collect file names
-    const imageFile = req.files.image ? req.files.image[0].filename : null;
-    const resumeFile = req.files.resume ? req.files.resume[0].filename : null;
-    const job_offerFile = req.files.job_offer ? req.files.job_offer[0].filename : null;
-    const contractFile = req.files.contract ? req.files.contract[0].filename : null;
-    const valid_idFile = req.files.valid_id ? req.files.valid_id[0].filename : null;
-    const application_formFile = req.files.application_form ? req.files.application_form[0].filename : null;
-    const disciplinary_formFile = req.files.disciplinary_form ? req.files.disciplinary_form[0].filename : null;
-
-    // Insert employee data
-    const values = [
-      req.body.emp_no,
-      req.body.fname,
-      req.body.mname,
-      req.body.lname,
-      req.body.gender,
-      req.body.birth_date,
-      req.body.phone_number,
-      req.body.perma_address,
-      req.body.emergency_name,
-      req.body.emergency_relationship,
-      req.body.emergency_phone_number,
-      req.body.date_hired,
-      req.body.pay_frequency,
-      req.body.rate_per_day,
-      req.body.rate_per_hour,
-      req.body.employee_status,
-      req.body.department,
-      req.body.project,
-      req.body.position,
-      req.body.email,
-      hash,
-      req.body.salary,
-      req.body.start_time, // Replace req.body.start_time with startTime12Hour
-      req.body.out_time, // Replace req.body.out_time with outTime12Hour
-      imageFile,
-      resumeFile,
-      job_offerFile,
-      contractFile,
-      valid_idFile,
-      application_formFile,
-      disciplinary_formFile,
-    ];
-
-    await pool.query(sqlInsertEmployee, [values]);
-    return res.json({ Status: true, Message: "Employee added successfully" });
-
-  } catch (err) {
-    console.error(err);
-    return res.json({ Status: false, Error: "Error adding employee" });
-  }
-});
-
 //update image of the employee
 router.put('/update_employee_image/:id', upload.single('image'), async (req, res) => {
   const id = req.params.id;
@@ -886,8 +887,6 @@ router.get("/employee", async (req, res) => {
     return res.json({ Status: false, Error: "Query Error" });
   }
 });
-
-
 
 router.get('/employee/:id', async (req, res) => {
   const id = req.params.id;
