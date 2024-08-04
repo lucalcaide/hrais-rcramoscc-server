@@ -11,7 +11,7 @@ console.log('Loaded environment variables:', process.env);
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 if (!JWT_SECRET_KEY) {
     console.error('JWT_SECRET_KEY is not set in environment variables');
-    process.exit(1); // Exit the script with an error code
+    process.exit(1);
 }
 
 // Example function to generate a token

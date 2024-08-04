@@ -22,7 +22,6 @@ console.log('Files in parent directory:', fs.readdirSync(path.join(__dirname, '.
 console.log('Static files directory:', distPath);
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
@@ -36,8 +35,8 @@ if (!JWT_SECRET_KEY) {
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, role: user.role },
-    JWT_SECRET_KEY,
-    { expiresIn: '1h' } // Adjust expiry as needed
+    JWT_SECRET_KEY, // Ensure this matches the key used for verification
+    { expiresIn: '1h' } // Set appropriate expiry time
   );
 };
 
@@ -72,7 +71,6 @@ app.use('/payroll', payrollRouter);
 // Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  
   if (!authHeader) {
     return res.status(400).send('Bad Request: Missing Authorization Header');
   }
@@ -83,7 +81,7 @@ const verifyUser = (req, res, next) => {
   }
 
   try {
-    const verified = jwt.verify(token, JWT_SECRET_KEY);
+    const verified = jwt.verify(token, JWT_SECRET_KEY); // Verify token with the secret key
     req.user = verified;
     next();
   } catch (error) {
@@ -91,6 +89,10 @@ const verifyUser = (req, res, next) => {
     res.status(401).send('Unauthorized: Invalid Token');
   }
 };
+
+app.use(cors());
+app.use(express.json());
+app.use(cookieParser());
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
