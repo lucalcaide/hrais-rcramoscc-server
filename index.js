@@ -52,6 +52,7 @@ console.log('Generated Token:', token);
 
 app.use(cors({
   origin: 'https://hrais-rcramoscc-client.onrender.com',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true // Allow sending cookies and authorization headers
 }));
 
@@ -88,10 +89,6 @@ const verifyUser = (req, res, next) => {
     res.status(401).send('Unauthorized: Invalid Token');
   }
 };
-
-app.use(cors());
-app.use(express.json());
-app.use(cookieParser());
 
 // Authentication check route
 app.get('/verify', verifyUser, (req, res) => {
