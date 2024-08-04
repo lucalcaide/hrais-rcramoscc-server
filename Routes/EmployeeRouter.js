@@ -23,8 +23,8 @@ router.post("/employeelogin", async (req, res) => {
     const match = await bcryptjs.compare(req.body.password, employee.password);
     if (match) {
       const token = jwt.sign(
-        { role: "employee", email: employee.email, id: employee.id },
-        "employee_secret_key",
+        { role: "employee", email: employee.email, id: employee.result[0].id },
+        "jwt_secret_key",
         { expiresIn: "1d" }
       );
       res.cookie("token", token);

@@ -14,9 +14,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-router.post('login', async (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
+  // Define the queries and roles
   const queries = [
     { sql: "SELECT * FROM admin WHERE email = ?", role: 'admin' },
     { sql: "SELECT * FROM recruitment WHERE email = ?", role: 'recruitment' },
@@ -24,37 +25,49 @@ router.post('login', async (req, res) => {
     { sql: "SELECT * FROM employee WHERE email = ?", role: 'employee' }
   ];
 
-  for (const query of queries) {
-    try {
-      const [result] = await pool.query(query.sql, [email]);
+  try {
+    // Iterate through queries to find the user
+    for (const query of queries) {
+      const [rows] = await pool.query(query.sql, [email]);
 
-      if (result.length > 0) {
-        if (query.role === 'employee' && result[0].employee_status === 'Inactive') {
+      if (rows.length > 0) {
+        // Check if the account is deactivated for employees
+        if (query.role === 'employee' && rows[0].employee_status === 'Inactive') {
           return res.json({ loginStatus: false, Error: "Account Deactivated!" });
         }
 
-        const isMatch = await bcryptjs.compare(password, result[0].password);
+        // Verify the password
+        const isMatch = await bcryptjs.compare(password, rows[0].password);
         if (!isMatch) {
           return res.json({ loginStatus: false, Error: "Invalid Email or Password" });
         }
 
-        const { email, fname, lname, id } = result[0];
+        // Generate a JWT token
+        const { email, id } = rows[0];
         const token = jwt.sign(
-          { role: query.role, email, id },
-          process.env.JWT_SECRET_KEY || "jwt_secret_key", // Use environment variable
+          { role: query.role, email: email, id: id },
+          process.env.JWT_SECRET_KEY || "jwt_secret_key",
           { expiresIn: "1d" }
         );
 
-        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'Strict' });
+        // Set the token as an HTTP-only cookie
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production', // Only set the secure flag in production
+          sameSite: 'Strict' // Helps prevent CSRF attacks
+        });
+
         return res.json({ loginStatus: true, role: query.role, id });
       }
-    } catch (err) {
-      console.error(`Query error for ${query.role}:`, err);
-      return res.json({ loginStatus: false, Error: "Query error" });
     }
-  }
 
-  return res.json({ loginStatus: false, Error: "Check your credentials and Try Again." });
+    // If no user is found in any role
+    return res.json({ loginStatus: false, Error: "Check your credentials and try again." });
+
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.json({ loginStatus: false, Error: "Server error, please try again later." });
+  }
 });
 
 router.get('/verifyToken', (req, res) => {
