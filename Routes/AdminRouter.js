@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-router.post("/login", async (req, res) => {
+router.post('login', async (req, res) => {
   const { email, password } = req.body;
 
   const queries = [
@@ -24,11 +24,7 @@ router.post("/login", async (req, res) => {
     { sql: "SELECT * FROM employee WHERE email = ?", role: 'employee' }
   ];
 
-  let found = false;
-
   for (const query of queries) {
-    if (found) break;
-
     try {
       const [result] = await pool.query(query.sql, [email]);
 
@@ -45,11 +41,11 @@ router.post("/login", async (req, res) => {
         const { email, fname, lname, id } = result[0];
         const token = jwt.sign(
           { role: query.role, email, id },
-          "jwt_secret_key",
+          process.env.JWT_SECRET_KEY || "jwt_secret_key", // Use environment variable
           { expiresIn: "1d" }
         );
 
-        res.cookie("token", token, { httpOnly: true });
+        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'Strict' });
         return res.json({ loginStatus: true, role: query.role, id });
       }
     } catch (err) {

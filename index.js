@@ -80,15 +80,19 @@ app.post('/login', (req, res) => {
   // Generate a token
   const token = generateToken(user);
 
+  // Determine environment-specific cookie settings
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Secure cookies in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax' // SameSite setting based on environment
+  };
+
   // Set the token in a secure cookie
-  res.cookie('token', token, { 
-    httpOnly: true, 
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    sameSite: 'Strict' 
-  });
+  res.cookie('token', token, cookieOptions);
 
   res.json({ message: 'Logged in successfully' });
 });
+
 
 /* Middleware function to verify the JWT token
 const verifyUser = (req, res, next) => {
